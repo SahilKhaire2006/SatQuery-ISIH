@@ -8,9 +8,11 @@ python-multipart>=0.0.6
 torch>=2.9.0
 torchvision>=0.24.0
 transformers>=4.35.0
+timm>=0.9.0
 opencv-python>=4.8.0
 numpy>=1.26.0
 Pillow>=10.0.0
+
 
 # Geospatial (optional - remove if issues persist)
 folium>=0.15.0
@@ -28,3 +30,5 @@ pyyaml>=6.0.0
 python-jose>=3.3.0
 passlib>=1.7.0
 python-dateutil>=2.8.0
+groq>=0.9.0
+

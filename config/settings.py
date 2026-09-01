@@ -29,6 +29,20 @@ GROUNDING_MODEL = os.getenv('GROUNDING_MODEL', 'groundingdino')
 SAR_MODEL = os.getenv('SAR_MODEL', 'sentinel1-classifier')
 CHANGE_DETECTION_MODEL = os.getenv('CHANGE_DETECTION_MODEL', 'siamese-net')
 
+# Groq LLM Settings
+GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
+GROQ_MODEL_TEXT = os.getenv('GROQ_MODEL_TEXT', 'llama-3.3-70b-versatile')
+GROQ_MODEL_VISION = os.getenv('GROQ_MODEL_VISION', 'llama-3.2-11b-vision-preview')
+
+# Hugging Face Settings
+HF_TOKEN = os.getenv('HF_TOKEN', '')
+HF_VQA_MODEL = os.getenv('HF_VQA_MODEL', 'Salesforce/blip-vqa-base')
+HF_GROUNDING_MODEL = os.getenv('HF_GROUNDING_MODEL', 'google/owlvit-base-patch32')
+HF_FEATURE_MODEL = os.getenv('HF_FEATURE_MODEL', 'google/vit-base-patch16-224')
+
+
+
+
 # Processing Settings
 MAX_IMAGE_SIZE = int(os.getenv('MAX_IMAGE_SIZE', 1024))
 BATCH_SIZE = int(os.getenv('BATCH_SIZE', 4))

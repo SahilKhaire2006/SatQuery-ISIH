@@ -30,10 +30,16 @@ class ResultsViewer:
             print(f"Error: {results.get('error', 'Unknown error')}")
             return
         
-        # Main answer
+        # Main answer & AI Synthesized Explanation (USP-2)
         result_data = results.get('results', {})
+        explanation = results.get('explanation') or result_data.get('aggregated_summary')
+        if explanation:
+            print(f"\nAI Reasoning & Explanation (USP-2):\n{explanation}")
+        
         answer = result_data.get('answer', 'No answer available')
-        print(f"\nAnswer:\n{answer}")
+        if answer:
+            print(f"\nPrimary Output: {answer}")
+
         
         # Confidence
         confidence = results.get('confidence', 0.0)

@@ -1,7 +1,9 @@
 import pytest
+import numpy as np
 from fastapi.testclient import TestClient
 import main
 from api.gateway import app
+
 
 client = TestClient(app)
 
