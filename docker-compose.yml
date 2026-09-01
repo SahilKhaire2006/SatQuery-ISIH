@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: satquery-api
+    ports:
+      - "8000:8000"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - DATABASE_URL=postgresql://satquery:satquery@db:5432/satquery_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    command: python main.py
+
+  db:
+    image: postgres:15-alpine
+    container_name: satquery-db
+    environment:
+      - POSTGRES_USER=satquery
+      - POSTGRES_PASSWORD=satquery
+      - POSTGRES_DB=satquery_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: satquery-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:

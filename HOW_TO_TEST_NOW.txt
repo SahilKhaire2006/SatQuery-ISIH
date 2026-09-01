@@ -1,0 +1,210 @@
+================================================================================
+                     HOW TO TEST SATQUERY RIGHT NOW
+================================================================================
+
+You're currently in the CLI and it's asking for an image path.
+Here's exactly what to do:
+
+
+OPTION 1: TEST WITH CLI (Easiest - You're already here!)
+================================================================================
+
+STEP 1: Type 'cancel' to exit the current prompt
+--------------------------------------------------------------------------------
+In your CLI window, type:
+   cancel
+
+Then press Enter.
+
+
+STEP 2: Exit the CLI and start the API server first
+--------------------------------------------------------------------------------
+Select option: 3 (Exit)
+
+Then open a NEW terminal and run:
+   start_server.bat
+
+OR manually:
+   venv\Scripts\activate
+   python main.py
+
+WAIT until you see: "Uvicorn running on http://0.0.0.0:8000"
+
+
+STEP 3: Open another terminal and run CLI again
+--------------------------------------------------------------------------------
+   start_cli.bat
+
+OR manually:
+   venv\Scripts\activate
+   python cli.py
+
+
+STEP 4: Select option 1 (Process new query)
+--------------------------------------------------------------------------------
+
+
+STEP 5: Enter the image path
+--------------------------------------------------------------------------------
+When it asks "Enter image path (or 'cancel' to return):", type:
+
+   data/raw/test_satellite_image.png
+
+Then press Enter.
+
+
+STEP 6: Enter your query
+--------------------------------------------------------------------------------
+When it asks "Enter your query:", type:
+
+   How many buildings are visible in this image?
+
+Then press Enter.
+
+
+STEP 7: View the results!
+--------------------------------------------------------------------------------
+You should see formatted results with:
+- Answer
+- Confidence score
+- Tool used
+- Detailed information
+
+
+================================================================================
+
+
+OPTION 2: TEST WITH BROWSER (Interactive API Docs)
+================================================================================
+
+STEP 1: Start the API server
+--------------------------------------------------------------------------------
+Open terminal and run:
+   start_server.bat
+
+
+STEP 2: Open browser and go to:
+--------------------------------------------------------------------------------
+   http://localhost:8000/docs
+
+
+STEP 3: Click on "POST /api/v1/query"
+--------------------------------------------------------------------------------
+
+
+STEP 4: Click "Try it out" button
+--------------------------------------------------------------------------------
+
+
+STEP 5: Fill in the form
+--------------------------------------------------------------------------------
+- query: How many buildings are visible in this image?
+- image: Click "Choose File" → Select: data/raw/test_satellite_image.png
+
+
+STEP 6: Click "Execute"
+--------------------------------------------------------------------------------
+
+
+STEP 7: Scroll down to see the response!
+--------------------------------------------------------------------------------
+
+
+================================================================================
+
+
+OPTION 3: TEST WITH PYTHON SCRIPT (Automated)
+================================================================================
+
+STEP 1: Start the API server in one terminal
+--------------------------------------------------------------------------------
+   start_server.bat
+
+
+STEP 2: Open another terminal and run:
+--------------------------------------------------------------------------------
+   venv\Scripts\activate
+   python test_api_quick.py
+
+This will automatically run all tests and show you the results!
+
+
+================================================================================
+
+
+QUICK ANSWER TO YOUR CURRENT SITUATION:
+================================================================================
+
+Right now, you need to:
+
+1. Type: cancel
+2. Exit CLI (option 3)
+3. Start server first: start_server.bat
+4. Then run CLI again: start_cli.bat
+5. Use this image path: data/raw/test_satellite_image.png
+6. Use this query: How many buildings are visible in this image?
+
+
+THE KEY POINT: You need BOTH running at the same time:
+   - Terminal 1: API Server (start_server.bat)
+   - Terminal 2: CLI Interface (start_cli.bat)
+
+
+================================================================================
+
+
+SAMPLE TEST QUERIES TO TRY:
+================================================================================
+
+VQA (Visual Question Answering):
+   - How many buildings are visible in this image?
+   - What type of terrain is shown?
+   - Describe what you see in this satellite image
+
+Grounding (Localization):
+   - Where are the buildings located?
+   - Find water bodies in this image
+   - Locate the roads
+
+Change Detection:
+   - What changes occurred in this area?
+   - Detect urban growth
+
+SAR Fusion:
+   - Analyze using SAR and optical data
+
+
+================================================================================
+
+
+FILE LOCATIONS:
+================================================================================
+
+Test Image:        data/raw/test_satellite_image.png
+Start Server:      start_server.bat
+Start CLI:         start_cli.bat
+API Docs:          http://localhost:8000/docs
+Testing Guide:     TESTING_GUIDE.md
+
+
+================================================================================
+
+TROUBLESHOOTING:
+================================================================================
+
+Q: "Cannot connect to API server"
+A: Start the server first with start_server.bat
+
+Q: "File not found"
+A: Use path: data/raw/test_satellite_image.png
+   Or full path: A:\VIT-3rd-sem\3rd_sem\isih\SatQuery\data\raw\test_satellite_image.png
+
+Q: Port 8000 in use?
+A: Edit .env file and change API_PORT=8000 to API_PORT=8001
+
+
+================================================================================
+
+That's it! Follow these steps and you'll be testing successfully! 🚀
+
+================================================================================
