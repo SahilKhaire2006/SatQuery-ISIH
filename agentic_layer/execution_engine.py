@@ -48,7 +48,7 @@ class ExecutionEngine:
             try:
                 # Execute model
                 model = self.models[tool_id]
-                result = await model.predict(
+                result = model.predict(
                     image=image_data,
                     query=query,
                     parameters=tool_params
@@ -76,9 +76,12 @@ class ExecutionEngine:
         # Aggregate results
         aggregated_results = self._aggregate_results(results, tools)
         
+        # Calculate confidence (convert numpy float to Python float for JSON serialization)
+        confidence = float(np.mean(overall_confidence)) if overall_confidence else 0.0
+        
         return {
             'results': aggregated_results,
-            'confidence': np.mean(overall_confidence) if overall_confidence else 0.0,
+            'confidence': confidence,
             'execution_log': execution_log
         }
     
@@ -93,17 +96,24 @@ class ExecutionEngine:
             'details': {}
         }
         
+        # Handle case where no tools were executed
+        if not tools or not results:
+            logger.warning("No results to aggregate")
+            return aggregated
+        
         # Primary answer from first tool
         primary_tool = tools[0]['tool_id']
         if primary_tool in results:
             primary_result = results[primary_tool]
-            aggregated['answer'] = primary_result.get('answer', '')
-            aggregated['visual_output'] = primary_result.get('visualization', None)
+            if isinstance(primary_result, dict):
+                aggregated['answer'] = primary_result.get('answer', primary_result.get('query', ''))
+                aggregated['visual_output'] = primary_result.get('visualization', None)
         
         # Add supporting information from other tools
         for tool_id, result in results.items():
-            aggregated['details'][tool_id] = result
-            if 'confidence' in result:
-                aggregated['confidence_scores'][tool_id] = result['confidence']
+            if isinstance(result, dict):
+                aggregated['details'][tool_id] = result
+                if 'confidence' in result:
+                    aggregated['confidence_scores'][tool_id] = result['confidence']
         
         return aggregated

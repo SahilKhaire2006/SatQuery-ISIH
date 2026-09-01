@@ -4,6 +4,14 @@ SatQuery - Satellite Image Query System
 Main API server entry point
 """
 
+import sys
+import os
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).parent.absolute()
+sys.path.insert(0, str(project_root))
+
 import uvicorn
 from config.settings import API_HOST, API_PORT
 from utils.logger import setup_logger
@@ -17,14 +25,14 @@ def main():
     """
     logger.info("Starting SatQuery API Server")
     logger.info(f"Server will run on http://{API_HOST}:{API_PORT}")
-    logger.info("API documentation available at http://{API_HOST}:{API_PORT}/docs")
-    
+    logger.info(f"API documentation available at http://{API_HOST}:{API_PORT}/docs")
+
     uvicorn.run(
         "api.gateway:app",
         host=API_HOST,
         port=API_PORT,
-        reload=True,
-        log_level="info"
+        reload=False,
+        log_level="debug"
     )
 
 

@@ -83,7 +83,14 @@ class AgenticOrchestrator:
                 'results': execution_result['results'],
                 'confidence': execution_result['confidence'],
                 'audit_log': {
-                    'validation': validation_result,
+                    'validation': {
+                        'valid': validation_result['valid'],
+                        'errors': validation_result['errors'],
+                        'warnings': validation_result['warnings'],
+                        'image_shape': validation_result['image_shape'],
+                        'task_type': validation_result['task_type']
+                        # Note: processed_image is excluded as it's a numpy array and can't be JSON serialized
+                    },
                     'interpretation': interpretation,
                     'selected_tools': selected_tools,
                     'execution': execution_result['execution_log']
