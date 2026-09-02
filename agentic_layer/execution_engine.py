@@ -4,6 +4,9 @@ import numpy as np
 
 from models.vqa_model import VQAModel
 from models.grounding_model import GroundingModel
+from models.building_detector import BuildingDetector
+from models.roboflow_building_detector import RoboflowBuildingDetector
+from models.roboflow_waterbody_detector import RoboflowWaterBodyDetector
 from models.change_detection_model import ChangeDetectionModel
 from models.sar_fusion_model import SARFusionModel
 
@@ -23,10 +26,37 @@ class ExecutionEngine:
     """
     
     def __init__(self):
+        # Try to load Roboflow building detector first, fallback to U-Net
+        try:
+            roboflow_detector = RoboflowBuildingDetector()
+            if roboflow_detector.loaded:
+                logger.info("Using Roboflow Building Detector (primary)")
+                building_detector = roboflow_detector
+            else:
+                logger.warning("Roboflow detector not available, falling back to U-Net")
+                building_detector = BuildingDetector()
+        except Exception as e:
+            logger.warning(f"Failed to load Roboflow detector: {e}, falling back to U-Net")
+            building_detector = BuildingDetector()
+        
+        # Load Roboflow water body detector
+        try:
+            waterbody_detector = RoboflowWaterBodyDetector()
+            if waterbody_detector.loaded:
+                logger.info("Roboflow Water Body Detector loaded successfully")
+            else:
+                logger.warning("Roboflow water body detector not available")
+        except Exception as e:
+            logger.warning(f"Failed to load Roboflow water body detector: {e}")
+            waterbody_detector = None
+        
         self.models = {
             'vqa_model': VQAModel(),
             'grounding_model': GroundingModel(),
-            'building_detector': BuildingDetector(),  # Specialized building detection / GroundingModel fallback
+            'building_detector': building_detector,  # Roboflow or U-Net fallback
+            'roboflow_building_detector': building_detector,  # Alias for explicit routing
+            'waterbody_detector': waterbody_detector,  # Water body detector
+            'roboflow_waterbody_detector': waterbody_detector,  # Alias for explicit routing
             'change_detection_model': ChangeDetectionModel(),
             'sar_fusion_model': SARFusionModel()
         }

@@ -16,12 +16,21 @@ class QueryInterpreter:
 
     async def interpret(self, query: str, task_type: Optional[str] = None) -> Dict:
         """
-        Interpret query using Groq LLM reasoning (or fallback)
+        Interpret query using Groq LLM reasoning to classify intent
+        Returns structured interpretation with explicit intent classification
         """
         logger.info(f"Interpreting query: '{query}' (task_hint: {task_type})")
 
-        # Get structured interpretation from LLM engine
-        interpretation = await self.llm_engine.interpret_query(query, task_hint=task_type)
+        # Build context with task hint if provided
+        context = {'task_hint': task_type} if task_type else None
+
+        # Get structured interpretation from LLM engine with intent classification
+        interpretation = await self.llm_engine.interpret_query(query, context=context)
+
+        # Classify intent based on LLM output and query keywords
+        intent = self._classify_intent(query, interpretation)
+        interpretation['intent'] = intent
+        interpretation['intent_confidence'] = interpretation.get('confidence', 0.85)
 
         # Ensure standard structure expected downstream
         if 'parameters' not in interpretation:
@@ -44,8 +53,41 @@ class QueryInterpreter:
             interpretation['spatial_metadata']['coordinates'] = coords
             interpretation['parameters']['coordinates'] = coords
 
-        logger.info(f"Query interpreted as task_type: {interpretation.get('task_type')}")
+        logger.info(f"Query classified as intent: {intent} (task_type: {interpretation.get('task_type')})")
         return interpretation
+    
+    def _classify_intent(self, query: str, interpretation: Dict) -> str:
+        """
+        Classify query intent into specific categories for tool routing
+        Priority order: building_detection > water_detection > vegetation_detection > change_detection > general_vqa
+        """
+        query_lower = query.lower()
+        task_type = interpretation.get('task_type', 'vqa')
+        entities = interpretation.get('entities', [])
+        
+        # Building detection intent
+        building_keywords = ['building', 'structure', 'warehouse', 'factory', 'house', 'construction', 'rooftop']
+        if any(kw in query_lower for kw in building_keywords):
+            if any(action in query_lower for action in ['count', 'how many', 'detect', 'locate', 'find', 'identify']):
+                return 'building_detection'
+        
+        # Water detection intent
+        water_keywords = ['water', 'river', 'lake', 'pond', 'ocean', 'sea', 'reservoir', 'stream']
+        if any(kw in query_lower for kw in water_keywords):
+            return 'water_detection'
+        
+        # Vegetation detection intent
+        vegetation_keywords = ['vegetation', 'forest', 'tree', 'plant', 'crop', 'green', 'ndvi', 'greenery']
+        if any(kw in query_lower for kw in vegetation_keywords):
+            return 'vegetation_detection'
+        
+        # Change detection intent
+        change_keywords = ['change', 'difference', 'compare', 'before', 'after', 'temporal', 'evolve']
+        if any(kw in query_lower for kw in change_keywords):
+            return 'change_detection'
+        
+        # Default to general VQA
+        return 'general_vqa'
 
     def _extract_coordinates(self, query: str) -> Optional[list]:
         """Extract latitude and longitude floating point numbers from query text"""
