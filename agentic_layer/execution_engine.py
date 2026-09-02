@@ -5,6 +5,7 @@ import numpy as np
 from models.vqa_model import VQAModel
 from models.grounding_model import GroundingModel
 from models.building_detector import BuildingDetector
+from models.roboflow_building_detector import RoboflowBuildingDetector
 from models.change_detection_model import ChangeDetectionModel
 from models.sar_fusion_model import SARFusionModel
 from utils.logger import setup_logger
@@ -18,10 +19,24 @@ class ExecutionEngine:
     """
     
     def __init__(self):
+        # Try to load Roboflow detector first, fallback to U-Net
+        try:
+            roboflow_detector = RoboflowBuildingDetector()
+            if roboflow_detector.loaded:
+                logger.info("Using Roboflow Building Detector (primary)")
+                building_detector = roboflow_detector
+            else:
+                logger.warning("Roboflow detector not available, falling back to U-Net")
+                building_detector = BuildingDetector()
+        except Exception as e:
+            logger.warning(f"Failed to load Roboflow detector: {e}, falling back to U-Net")
+            building_detector = BuildingDetector()
+        
         self.models = {
             'vqa_model': VQAModel(),
             'grounding_model': GroundingModel(),
-            'building_detector': BuildingDetector(),  # Specialized building detection
+            'building_detector': building_detector,  # Roboflow or U-Net fallback
+            'roboflow_building_detector': building_detector,  # Alias for explicit routing
             'change_detection_model': ChangeDetectionModel(),
             'sar_fusion_model': SARFusionModel()
         }

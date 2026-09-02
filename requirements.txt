@@ -37,3 +37,6 @@ groq>=0.9.0
 # Geospatial ML for satellite imagery
 torchgeo>=0.5.0
 segmentation-models-pytorch>=0.3.0
+
+# Roboflow Inference API
+inference-sdk>=0.9.0

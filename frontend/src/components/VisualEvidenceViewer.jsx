@@ -142,23 +142,23 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
               <h4 style={{ color: '#38bdf8', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Layers size={16} /> Bounding Box Target Localization Overlay
               </h4>
-              {b64Overlay && (
+              {(b64Overlay || results?.visual_evidence?.roboflow_annotated_image_b64) && (
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => setLightboxImg(b64Overlay)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                  <button onClick={() => setLightboxImg(results?.visual_evidence?.roboflow_annotated_image_b64 || b64Overlay)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
                     <Maximize2 size={13} /> Expand View
                   </button>
-                  <button onClick={() => handleDownloadImg(b64Overlay, 'satquery_bbox_overlay.png')} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                  <button onClick={() => handleDownloadImg(results?.visual_evidence?.roboflow_annotated_image_b64 || b64Overlay, 'satquery_detection_overlay.png')} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
                     <Download size={13} /> Save Image
                   </button>
                 </div>
               )}
             </div>
-            {b64Overlay ? (
+            {b64Overlay || results?.visual_evidence?.roboflow_annotated_image_b64 ? (
               <div style={{ position: 'relative', display: 'inline-block', width: '100%', maxWidth: '750px' }}>
                 <img
-                  src={b64Overlay}
-                  alt="Bounding Box Overlay"
-                  onClick={() => setLightboxImg(b64Overlay)}
+                  src={results?.visual_evidence?.roboflow_annotated_image_b64 || b64Overlay}
+                  alt={results?.visual_evidence?.roboflow_annotated_image_b64 ? "Roboflow Segmentation" : "Bounding Box Overlay"}
+                  onClick={() => setLightboxImg(results?.visual_evidence?.roboflow_annotated_image_b64 || b64Overlay)}
                   style={{
                     maxWidth: '100%',
                     maxHeight: '420px',
@@ -168,7 +168,14 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
                     boxShadow: '0 8px 30px rgba(0,0,0,0.5)'
                   }}
                 />
-                {results?.bounding_boxes?.count > 0 && (
+                {results?.visual_evidence?.roboflow_annotated_image_b64 && (
+                  <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '8px', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                    <p style={{ fontSize: '0.85rem', color: '#a855f7', margin: 0 }}>
+                      ✓ Roboflow Segmentation Analysis - AI-powered building detection complete
+                    </p>
+                  </div>
+                )}
+                {!results?.visual_evidence?.roboflow_annotated_image_b64 && results?.bounding_boxes?.count > 0 && (
                   <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(56, 189, 248, 0.1)', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
                     <p style={{ fontSize: '0.85rem', color: '#38bdf8', margin: 0 }}>
                       ✓ Detected {results.bounding_boxes.count} object{results.bounding_boxes.count !== 1 ? 's' : ''} with visual evidence grounding

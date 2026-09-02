@@ -1,0 +1,82 @@
+{
+  "name": "Multi-Tool Architecture for Intent-Based Detection",
+  "version": "1.0.0",
+  "status": "requirements",
+  "created": "2026-09-02",
+  "updated": "2026-09-02",
+  "owner": "VIT 3rd Sem ISIH Team",
+  "priority": "critical",
+  "description": "Refactor SatQuery from generic grounding to specialized intent-based detection modules (buildings via Roboflow, water/vegetation via spectral indices) with standardized tool output schema.",
+  "context": {
+    "problem": "OWL-ViT zero-shot grounding achieves 0-5 building detections vs. 18 in reference image. Generic model unsuitable for satellite imagery.",
+    "goal": "Achieve 15+ building detection accuracy, implement NDVI/NDWI for water/vegetation, standardize tool outputs.",
+    "constraints": [
+      "Academic project timeline - need incremental testing",
+      "No time for model training from scratch",
+      "Must use pretrained models or APIs",
+      "Roboflow API keys available"
+    ]
+  },
+  "modules": [
+    {
+      "id": "module-1",
+      "name": "Intent Classification & Routing",
+      "status": "implemented",
+      "needs_validation": true
+    },
+    {
+      "id": "module-2",
+      "name": "Standardized Tool Output Schema",
+      "status": "pending",
+      "needs_validation": false
+    },
+    {
+      "id": "module-3",
+      "name": "Roboflow Building Detection Integration",
+      "status": "pending",
+      "needs_validation": false
+    },
+    {
+      "id": "module-4",
+      "name": "Spectral Index Model (NDVI/NDWI)",
+      "status": "pending",
+      "needs_validation": false
+    },
+    {
+      "id": "module-5",
+      "name": "Result Aggregator Update",
+      "status": "pending",
+      "needs_validation": false
+    },
+    {
+      "id": "module-6",
+      "name": "Evidence Compiler Update",
+      "status": "pending",
+      "needs_validation": false
+    },
+    {
+      "id": "module-7",
+      "name": "End-to-End Integration Testing",
+      "status": "pending",
+      "needs_validation": false
+    }
+  ],
+  "dependencies": {
+    "external_apis": [
+      "Roboflow Inference API"
+    ],
+    "new_packages": [
+      "inference-sdk",
+      "opencv-python"
+    ],
+    "environment_variables": [
+      "ROBOFLOW_API_KEY",
+      "ROBOFLOW_WORKSPACE",
+      "ROBOFLOW_PROJECT",
+      "ROBOFLOW_VERSION",
+      "BUILDING_CONFIDENCE_THRESHOLD",
+      "NDVI_THRESHOLD",
+      "NDWI_THRESHOLD"
+    ]
+  }
+}
