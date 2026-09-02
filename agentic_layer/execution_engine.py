@@ -4,9 +4,6 @@ import numpy as np
 
 from models.vqa_model import VQAModel
 from models.grounding_model import GroundingModel
-from models.building_detector import BuildingDetector
-from models.roboflow_building_detector import RoboflowBuildingDetector
-from models.roboflow_waterbody_detector import RoboflowWaterBodyDetector
 from models.change_detection_model import ChangeDetectionModel
 from models.sar_fusion_model import SARFusionModel
 
@@ -14,6 +11,16 @@ try:
     from models.building_detector import BuildingDetector
 except ImportError:
     BuildingDetector = GroundingModel
+
+try:
+    from models.roboflow_building_detector import RoboflowBuildingDetector
+except ImportError:
+    RoboflowBuildingDetector = None
+
+try:
+    from models.roboflow_waterbody_detector import RoboflowWaterBodyDetector
+except ImportError:
+    RoboflowWaterBodyDetector = None
 
 from utils.logger import setup_logger
 
