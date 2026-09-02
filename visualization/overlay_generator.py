@@ -50,7 +50,7 @@ class OverlayGenerator:
 
             h, w = img_copy.shape[:2]
 
-            for idx, det in enumerate(detections):
+            for idx, det in enumerate(detections, start=1):  # Start counting from 1
                 bbox = det.get('bbox', [0, 0, w, h])
                 label = det.get('label', 'target')
                 conf = det.get('confidence', 0.85)
@@ -58,27 +58,71 @@ class OverlayGenerator:
                 xmin, ymin, xmax, ymax = [int(v) for v in bbox]
                 color = self.colors[idx % len(self.colors)]
 
-                # Draw rectangle box
-                cv2.rectangle(img_copy, (xmin, ymin), (xmax, ymax), color, 2)
+                # Draw rectangle box with thicker line for visibility
+                cv2.rectangle(img_copy, (xmin, ymin), (xmax, ymax), color, 3)
 
-                # Draw label banner
-                text = f"{label} {conf:.2f}"
-                (text_w, text_h), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+                # Draw numbered label (like reference image: "1", "2", etc.)
+                label_text = str(idx)
+                font_scale = 0.8
+                thickness = 2
+                (text_w, text_h), baseline = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
+                
+                # Draw label background circle/box
+                label_size = max(text_w, text_h) + 8
+                label_x = xmin + 5
+                label_y = ymin + 5
                 cv2.rectangle(
                     img_copy,
-                    (xmin, max(0, ymin - text_h - 4)),
-                    (xmin + text_w, ymin),
+                    (label_x, label_y),
+                    (label_x + label_size, label_y + label_size),
                     color,
                     -1
                 )
+                
+                # Draw number
+                text_x = label_x + (label_size - text_w) // 2
+                text_y = label_y + (label_size + text_h) // 2
                 cv2.putText(
                     img_copy,
-                    text,
-                    (xmin, max(text_h, ymin - 2)),
+                    label_text,
+                    (text_x, text_y),
                     cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
+                    font_scale,
+                    (255, 255, 255),  # White text
+                    thickness,
+                    cv2.LINE_AA
+                )
+            
+            # Add total count overlay (bottom-left corner like reference)
+            if detections:
+                count_text = f"Total Buildings: {len(detections)}"
+                font_scale = 0.7
+                thickness = 2
+                (count_w, count_h), baseline = cv2.getTextSize(count_text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
+                
+                # Dark background for count
+                cv2.rectangle(
+                    img_copy,
+                    (10, h - count_h - 25),
+                    (count_w + 30, h - 10),
                     (0, 0, 0),
-                    1,
+                    -1
+                )
+                cv2.rectangle(
+                    img_copy,
+                    (10, h - count_h - 25),
+                    (count_w + 30, h - 10),
+                    (255, 255, 255),
+                    2
+                )
+                cv2.putText(
+                    img_copy,
+                    count_text,
+                    (20, h - 15),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    font_scale,
+                    (255, 255, 255),
+                    thickness,
                     cv2.LINE_AA
                 )
 

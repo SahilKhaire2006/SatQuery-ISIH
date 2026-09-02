@@ -1,5 +1,5 @@
 import math
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from utils.logger import setup_logger
 
 logger = setup_logger(__name__)

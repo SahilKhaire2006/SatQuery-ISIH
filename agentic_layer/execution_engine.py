@@ -4,6 +4,7 @@ import numpy as np
 
 from models.vqa_model import VQAModel
 from models.grounding_model import GroundingModel
+from models.building_detector import BuildingDetector
 from models.change_detection_model import ChangeDetectionModel
 from models.sar_fusion_model import SARFusionModel
 from utils.logger import setup_logger
@@ -20,6 +21,7 @@ class ExecutionEngine:
         self.models = {
             'vqa_model': VQAModel(),
             'grounding_model': GroundingModel(),
+            'building_detector': BuildingDetector(),  # Specialized building detection
             'change_detection_model': ChangeDetectionModel(),
             'sar_fusion_model': SARFusionModel()
         }
@@ -48,7 +50,7 @@ class ExecutionEngine:
             try:
                 # Execute model
                 model = self.models[tool_id]
-                result = model.predict(
+                result = await model.predict(
                     image=image_data,
                     query=query,
                     parameters=tool_params

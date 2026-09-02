@@ -98,6 +98,41 @@ class AgenticOrchestrator:
             final_results['evidence'] = aggregated['evidence']
             final_results['visual_evidence'] = aggregated.get('visual_evidence', {})
             final_results['geospatial_metadata'] = parsed_geo
+            
+            # Always include bounding boxes structure for frontend
+            grounding_output = execution_result['results'].get('grounding_model', {})
+            building_output = execution_result['results'].get('building_detector', {})
+            
+            # Prioritize building detector results if available
+            if building_output and isinstance(building_output, dict):
+                detection_source = building_output.get('output', building_output)
+            elif grounding_output and isinstance(grounding_output, dict):
+                detection_source = grounding_output.get('output', grounding_output)
+            else:
+                detection_source = {}
+            
+            detections = detection_source.get('detections', []) if isinstance(detection_source, dict) else []
+            img_shape = validation_result['image_shape']
+            
+            final_results['bounding_boxes'] = {
+                'detections': [
+                    {
+                        'label': d.get('label', 'object'),
+                        'confidence': d.get('confidence', 0.0),
+                        'bbox': d.get('bbox', [0, 0, 0, 0])  # [x1, y1, x2, y2]
+                    }
+                    for d in detections
+                ],
+                'status': detection_source.get('status', 'not_executed') if isinstance(detection_source, dict) else 'not_executed',
+                'image_dimensions': {
+                    'width': img_shape[1] if len(img_shape) > 1 else 0,
+                    'height': img_shape[0] if len(img_shape) > 0 else 0
+                },
+                'count': len(detections),
+                'model_used': 'building_detector' if building_output else 'grounding_model' if grounding_output else 'none'
+            }
+            
+            logger.info(f"Bounding boxes: {len(detections)} detections from {final_results['bounding_boxes']['model_used']}, visual_evidence keys: {list(final_results['visual_evidence'].keys())}")
 
             return {
                 'query_id': query_id,

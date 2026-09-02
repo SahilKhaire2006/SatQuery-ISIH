@@ -9,15 +9,18 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
   const b64Overlay = visualEvidence?.bounding_box_overlay_b64;
   const b64Attention = visualEvidence?.spatial_attention_heatmap_b64;
   const b64Saliency = visualEvidence?.spatial_saliency_map_b64;
+  
+  // Check if bounding boxes are available (from results structure)
+  const hasBoundingBoxData = results?.bounding_boxes?.count > 0 || b64Overlay;
 
   // Auto-select Bounding Box tab if available on new results
   useEffect(() => {
-    if (b64Overlay) {
+    if (b64Overlay || hasBoundingBoxData) {
       setActiveTab('bbox');
     } else if (results && Object.keys(results).length > 0) {
       setActiveTab('explanation');
     }
-  }, [results, b64Overlay]);
+  }, [results, b64Overlay, hasBoundingBoxData]);
 
   if (!results || Object.keys(results).length === 0) {
     return (
@@ -73,15 +76,14 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
           >
             AI Explanation
           </button>
-          {b64Overlay && (
-            <button
-              onClick={() => setActiveTab('bbox')}
-              className={activeTab === 'bbox' ? 'btn-primary' : 'btn-secondary'}
-              style={{ padding: '8px 16px', fontSize: '0.82rem' }}
-            >
-              <Layers size={14} /> Bounding Boxes
-            </button>
-          )}
+          {/* Always show Bounding Boxes tab for transparency */}
+          <button
+            onClick={() => setActiveTab('bbox')}
+            className={activeTab === 'bbox' ? 'btn-primary' : 'btn-secondary'}
+            style={{ padding: '8px 16px', fontSize: '0.82rem' }}
+          >
+            <Layers size={14} /> Bounding Boxes {results?.bounding_boxes?.count > 0 && `(${results.bounding_boxes.count})`}
+          </button>
           {b64Attention && (
             <button
               onClick={() => setActiveTab('attention')}
@@ -133,37 +135,62 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
           </div>
         )}
 
-        {/* Bounding Boxes Tab */}
-        {activeTab === 'bbox' && b64Overlay && (
+        {/* Bounding Boxes Tab - Always available */}
+        {activeTab === 'bbox' && (
           <div style={{ textAlign: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <h4 style={{ color: '#38bdf8', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Layers size={16} /> Bounding Box Target Localization Overlay
               </h4>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => setLightboxImg(b64Overlay)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
-                  <Maximize2 size={13} /> Expand View
-                </button>
-                <button onClick={() => handleDownloadImg(b64Overlay, 'satquery_bbox_overlay.png')} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
-                  <Download size={13} /> Save Image
-                </button>
+              {b64Overlay && (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setLightboxImg(b64Overlay)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                    <Maximize2 size={13} /> Expand View
+                  </button>
+                  <button onClick={() => handleDownloadImg(b64Overlay, 'satquery_bbox_overlay.png')} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                    <Download size={13} /> Save Image
+                  </button>
+                </div>
+              )}
+            </div>
+            {b64Overlay ? (
+              <div style={{ position: 'relative', display: 'inline-block', width: '100%', maxWidth: '750px' }}>
+                <img
+                  src={b64Overlay}
+                  alt="Bounding Box Overlay"
+                  onClick={() => setLightboxImg(b64Overlay)}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '420px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-glass-accent)',
+                    cursor: 'pointer',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.5)'
+                  }}
+                />
+                {results?.bounding_boxes?.count > 0 && (
+                  <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(56, 189, 248, 0.1)', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+                    <p style={{ fontSize: '0.85rem', color: '#38bdf8', margin: 0 }}>
+                      ✓ Detected {results.bounding_boxes.count} object{results.bounding_boxes.count !== 1 ? 's' : ''} with visual evidence grounding
+                    </p>
+                  </div>
+                )}
               </div>
-            </div>
-            <div style={{ position: 'relative', display: 'inline-block', width: '100%', maxWidth: '750px' }}>
-              <img
-                src={b64Overlay}
-                alt="Bounding Box Overlay"
-                onClick={() => setLightboxImg(b64Overlay)}
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '420px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-glass-accent)',
-                  cursor: 'pointer',
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.5)'
-                }}
-              />
-            </div>
+            ) : (
+              <div style={{ padding: '48px 24px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', border: '1px dashed var(--border-glass)' }}>
+                <Layers size={48} color="rgba(148, 163, 184, 0.3)" style={{ marginBottom: '16px' }} />
+                <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                  {results?.bounding_boxes?.status === 'no_detections' 
+                    ? 'No structures detected by the grounding model for this image.'
+                    : results?.bounding_boxes?.status === 'model_not_loaded'
+                    ? 'Object detection model not loaded.'
+                    : 'Bounding box visualization not available for this query.'}
+                </p>
+                <p style={{ fontSize: '0.8rem', color: 'rgba(148, 163, 184, 0.6)' }}>
+                  The AI models analyzed the image but did not identify any objects matching the query criteria.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

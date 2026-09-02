@@ -20,8 +20,11 @@ class QueryInterpreter:
         """
         logger.info(f"Interpreting query: '{query}' (task_hint: {task_type})")
 
+        # Build context with task hint if provided
+        context = {'task_hint': task_type} if task_type else None
+
         # Get structured interpretation from LLM engine
-        interpretation = await self.llm_engine.interpret_query(query, task_hint=task_type)
+        interpretation = await self.llm_engine.interpret_query(query, context=context)
 
         # Ensure standard structure expected downstream
         if 'parameters' not in interpretation:

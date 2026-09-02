@@ -32,20 +32,34 @@ class ResultAggregator:
         details = tool_results.get('details', tool_results)
 
         # Call Groq LLM aggregator (or fallback)
-        summary_text = await self.llm_engine.aggregate_results(
+        llm_aggregation = await self.llm_engine.aggregate_results(
             query=query,
             interpretation=interpretation,
             tool_results=details
         )
+        
+        # Extract summary text from LLM response
+        summary_text = llm_aggregation.get('summary', 'Analysis complete.')
 
         # Build evidence inventory for USP-2 audit trail
         evidence = []
+        vqa_answer = None
+        grounding_count = 0
+        
         for tool_id, res in details.items():
             if not isinstance(res, dict):
                 continue
             
             out = res.get('output', res)
             conf = res.get('confidence', out.get('confidence', 0.0))
+            
+            # Track VQA answer
+            if tool_id == 'vqa_model':
+                vqa_answer = out.get('answer', '')
+            
+            # Track grounding detections
+            if tool_id == 'grounding_model' and 'detections' in out:
+                grounding_count = len(out['detections'])
             
             ev_item = {
                 'source_tool': tool_id,
@@ -66,11 +80,27 @@ class ResultAggregator:
                 ev_item['details'] = {'answer': out.get('answer', str(out))}
 
             evidence.append(ev_item)
+        
+        # Check for VQA/grounding disagreement
+        confidence_adjustment = 1.0
+        if vqa_answer and grounding_count > 0:
+            # If VQA says "no" but grounding found objects, flag disagreement
+            if any(word in vqa_answer.lower() for word in ['no', 'not', 'none', 'zero', 'absent']):
+                logger.warning(f"VQA/grounding disagreement detected: VQA='{vqa_answer}' but found {grounding_count} detections")
+                confidence_adjustment = 0.5
+        elif vqa_answer and grounding_count == 0:
+            # If VQA says "yes" but grounding found nothing, also flag
+            if not any(word in vqa_answer.lower() for word in ['no', 'not', 'none', 'zero', 'absent']):
+                logger.warning(f"VQA/grounding disagreement: VQA found objects but grounding detected 0")
+                confidence_adjustment = 0.6
 
         # Generate visual evidence overlays if image is supplied
         visual_package = {}
         if image is not None:
             visual_package = self.evidence_compiler.compile_evidence(image, details, interpretation)
+
+        # Apply confidence adjustment if disagreement detected
+        final_confidence = interpretation.get('confidence', 0.9) * confidence_adjustment
 
         aggregated_response = {
             'summary': summary_text,
@@ -80,7 +110,7 @@ class ResultAggregator:
             'interpretation_summary': {
                 'task_type': interpretation.get('task_type'),
                 'intent': interpretation.get('intent'),
-                'confidence': interpretation.get('confidence', 0.9)
+                'confidence': final_confidence
             }
         }
 

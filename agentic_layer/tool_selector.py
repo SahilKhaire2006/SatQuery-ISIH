@@ -24,6 +24,11 @@ class ToolSelector:
                 'tasks': ['grounding', 'localization', 'detection'],
                 'priority': 2
             },
+            'building_detector': {
+                'name': 'Building Detector',
+                'tasks': ['building_detection', 'building_counting', 'structure_detection'],
+                'priority': 1  # High priority for building queries
+            },
             'change_detection_model': {
                 'name': 'Change Detection Model',
                 'tasks': ['change_detection', 'comparison', 'temporal'],
@@ -44,24 +49,52 @@ class ToolSelector:
 
         # Execute LLM tool selection
         tools = await self.llm_engine.select_tools(interpretation, available)
+        
+        logger.info(f"LLM selected {len(tools)} tools: {[t.get('tool_id') for t in tools]}")
 
         q_lower = interpretation.get('original_query', '').lower()
-        intent = interpretation.get('intent', '')
         
-        # Automatic multi-tool selection for counting and localization queries
+        # Route building detection queries to specialized model
+        is_building_query = any(k in q_lower for k in ['building', 'structure', 'warehouse', 'factory'])
         is_counting_query = any(k in q_lower for k in ['count', 'how many', 'number of'])
-        if is_counting_query:
+        
+        if is_building_query and (is_counting_query or 'locate' in q_lower or 'find' in q_lower or 'detect' in q_lower):
+            # Use specialized building detector instead of general grounding
+            logger.info("Routing to specialized building_detector for building query")
+            # Replace grounding_model with building_detector
+            tools = [t for t in tools if t.get('tool_id') != 'grounding_model']
+            has_building_detector = any(t.get('tool_id') == 'building_detector' for t in tools)
+            
+            if not has_building_detector:
+                tools.insert(0, {
+                    'tool_id': 'building_detector',
+                    'tool_name': 'Building Detector',
+                    'order': 1,
+                    'parameters': {
+                        'target_object': 'building',
+                        'entities': ['building', 'structure']
+                    },
+                    'rationale': 'Specialized satellite building detection'
+                })
+        
+        # Only suggest generic grounding for non-building counting queries
+        elif is_counting_query and len(tools) > 0:
+            # Check if grounding is already in the list
             has_grounding = any(t.get('tool_id') == 'grounding_model' for t in tools)
-            if not has_grounding:
+            has_vqa = any(t.get('tool_id') == 'vqa_model' for t in tools)
+            
+            # If LLM only selected VQA for a counting query, suggest adding grounding
+            if has_vqa and not has_grounding:
+                logger.info("Suggesting grounding_model for non-building counting query")
                 tools.append({
                     'tool_id': 'grounding_model',
                     'tool_name': 'Grounding Model',
                     'order': len(tools) + 1,
                     'parameters': {
-                        'target_object': interpretation.get('target_object', 'building'),
-                        'entities': interpretation.get('entities', ['building'])
+                        'target_object': interpretation.get('target_object', 'object'),
+                        'entities': interpretation.get('entities', [])
                     },
-                    'rationale': 'Automatic grounding execution for counting & object localization'
+                    'rationale': 'Suggested for accurate object counting'
                 })
 
         # Enforce USP-1 Directive (Optical-SAR Fusion Routing):
@@ -111,7 +144,7 @@ class ToolSelector:
         """Extract relevant parameters for specific tool"""
         params = interpretation.get('parameters', {})
 
-        if tool_id == 'grounding_model':
+        if tool_id == 'grounding_model' or tool_id == 'building_detector':
             return {
                 'target_object': params.get('target_object', interpretation.get('target_object', '')),
                 'entities': interpretation.get('entities', [])
