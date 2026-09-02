@@ -39,7 +39,10 @@ class ResultAggregator:
         )
         
         # Extract summary text from LLM response
-        summary_text = llm_aggregation.get('summary', 'Analysis complete.')
+        if isinstance(llm_aggregation, dict):
+            summary_text = llm_aggregation.get('summary', 'Analysis complete.')
+        else:
+            summary_text = str(llm_aggregation)
 
         # Build evidence inventory for USP-2 audit trail
         evidence = []

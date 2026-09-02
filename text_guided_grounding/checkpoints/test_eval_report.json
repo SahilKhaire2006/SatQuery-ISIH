@@ -1,0 +1,83 @@
+{
+  "dataset": "DIOR-RSVG (test split)",
+  "samples": 4,
+  "acc_05": 0.0,
+  "acc_07": 0.0,
+  "miou": 0.11242936258772251,
+  "ece": 0.5048,
+  "temperature": 5.0,
+  "results": [
+    {
+      "image_id": "dior_test_001",
+      "query": "a prominent building structure",
+      "gt_bbox": [
+        220.0,
+        200.0,
+        420.0,
+        390.0
+      ],
+      "pred_bbox": [
+        123.86,
+        135.2,
+        461.29,
+        454.95
+      ],
+      "confidence": 0.5027,
+      "iou": 0.3521999999212184
+    },
+    {
+      "image_id": "dior_test_002",
+      "query": "water body reservoir on the right",
+      "gt_bbox": [
+        420.0,
+        60.0,
+        660.0,
+        320.0
+      ],
+      "pred_bbox": [
+        123.86,
+        135.2,
+        461.29,
+        454.95
+      ],
+      "confidence": 0.5075,
+      "iou": 0.046909248033865016
+    },
+    {
+      "image_id": "dior_test_003",
+      "query": "the main highway road stretching across",
+      "gt_bbox": [
+        60.0,
+        540.0,
+        720.0,
+        650.0
+      ],
+      "pred_bbox": [
+        123.86,
+        135.2,
+        461.29,
+        454.95
+      ],
+      "confidence": 0.5047,
+      "iou": 0.0
+    },
+    {
+      "image_id": "dior_test_004",
+      "query": "dense green tree vegetation grove",
+      "gt_bbox": [
+        50.0,
+        400.0,
+        250.0,
+        580.0
+      ],
+      "pred_bbox": [
+        123.86,
+        135.2,
+        461.29,
+        454.95
+      ],
+      "confidence": 0.5042,
+      "iou": 0.05060820239580657
+    }
+  ]
+}

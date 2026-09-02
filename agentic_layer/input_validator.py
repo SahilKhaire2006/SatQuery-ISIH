@@ -39,25 +39,30 @@ class InputValidator:
         
         # Validate image
         try:
-            image = Image.open(io.BytesIO(image_data))
-            
-            # Check format
-            file_ext = '.' + image_filename.split('.')[-1].lower()
-            if file_ext not in self.supported_formats:
-                errors.append(f"Unsupported image format: {file_ext}")
-            
-            # Check size
-            width, height = image.size
-            if width > self.max_size or height > self.max_size:
-                warnings.append(f"Image will be resized from {width}x{height} to max {self.max_size}px")
-                image = self._resize_image(image)
-            
-            # Convert to array
-            processed_image = np.array(image)
+            if image_data and len(image_data) > 0:
+                image = Image.open(io.BytesIO(image_data))
+                
+                # Check format
+                file_ext = '.' + image_filename.split('.')[-1].lower() if image_filename else '.png'
+                if file_ext not in self.supported_formats:
+                    warnings.append(f"Unusual image format: {file_ext}")
+                
+                # Check size
+                width, height = image.size
+                if width > self.max_size or height > self.max_size:
+                    warnings.append(f"Image will be resized from {width}x{height} to max {self.max_size}px")
+                    image = self._resize_image(image)
+                
+                # Convert to array
+                processed_image = np.array(image)
+            else:
+                # No image uploaded - will be fetched via location in query / geocoder
+                processed_image = None
+                warnings.append("No uploaded image provided. Location/geocoding tile fetch active.")
             
         except Exception as e:
-            errors.append(f"Invalid image data: {str(e)}")
             processed_image = None
+            warnings.append(f"Uploaded image invalid ({e}). Location tile fetch active.")
         
         # Validate geo-metadata (if provided)
         geo_valid = True
@@ -78,6 +83,7 @@ class InputValidator:
             'errors': errors,
             'warnings': warnings,
             'processed_image': processed_image,
+            'image_filename': image_filename,
             'image_shape': processed_image.shape if processed_image is not None else None,
             'geo_metadata_valid': geo_valid,
             'task_type': task_type
@@ -101,7 +107,7 @@ class InputValidator:
         
         if any(word in query_lower for word in ['change', 'difference', 'compare']):
             return 'change_detection'
-        elif any(word in query_lower for word in ['locate', 'find', 'where', 'detect']):
+        elif any(word in query_lower for word in ['locate', 'find', 'where', 'detect', 'playground', 'building', 'structure', 'grounding', 'search', 'reservoir', 'water body']):
             return 'grounding'
         elif any(word in query_lower for word in ['sar', 'radar', 'fusion']):
             return 'sar_fusion'

@@ -1,0 +1,32 @@
+{
+  "dataset": "DIOR-RSVG",
+  "epochs": 3,
+  "best_val_miou": 0.0886,
+  "final_temperature": 5.0,
+  "history": [
+    {
+      "epoch": 1,
+      "loss": 190.86813990275064,
+      "val_acc_05": 0.0,
+      "val_acc_07": 0.0,
+      "val_miou": 0.0746,
+      "temperature": 5.0
+    },
+    {
+      "epoch": 2,
+      "loss": 166.4946575164795,
+      "val_acc_05": 0.0,
+      "val_acc_07": 0.0,
+      "val_miou": 0.0819,
+      "temperature": 5.0
+    },
+    {
+      "epoch": 3,
+      "loss": 155.8922659556071,
+      "val_acc_05": 0.0,
+      "val_acc_07": 0.0,
+      "val_miou": 0.0886,
+      "temperature": 5.0
+    }
+  ]
+}
