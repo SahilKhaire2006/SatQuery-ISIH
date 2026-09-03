@@ -34,20 +34,10 @@ class ToolSelector:
                 'tasks': ['building_detection', 'building_counting', 'structure_detection'],
                 'priority': 1  # Highest priority - use first
             },
-            'waterbody_detector': {
-                'name': 'Water Body Detector',
-                'tasks': ['water_detection', 'waterbody_detection', 'water_counting', 'lake_detection', 'river_detection'],
-                'priority': 1  # Highest priority - use first
-            },
-            'roboflow_waterbody_detector': {
-                'name': 'Roboflow Water Body Detector',
-                'tasks': ['water_detection', 'waterbody_detection', 'water_counting', 'lake_detection', 'river_detection'],
-                'priority': 1  # Highest priority - use first
-            },
             'spectral_index_model': {
                 'name': 'Spectral Index Model',
-                'tasks': ['vegetation_detection', 'ndvi', 'ndwi', 'spectral_analysis'],
-                'priority': 2  # Lower priority than Roboflow water detector
+                'tasks': ['water_detection', 'vegetation_detection', 'ndvi', 'ndwi'],
+                'priority': 1
             },
             'change_detection_model': {
                 'name': 'Change Detection Model',
@@ -87,16 +77,17 @@ class ToolSelector:
             }]
         
         elif intent == 'water_detection':
-            logger.info("Intent routing: water_detection -> roboflow_waterbody_detector")
+            logger.info("Intent routing: water_detection -> spectral_index_model (NDWI)")
             tools = [{
-                'tool_id': 'roboflow_waterbody_detector',
-                'tool_name': 'Roboflow Water Body Detector',
+                'tool_id': 'spectral_index_model',
+                'tool_name': 'Spectral Index Model (Water)',
                 'order': 1,
                 'parameters': {
+                    'index_type': 'ndwi',
                     'target_object': 'water',
-                    'entities': interpretation.get('entities', ['water', 'lake', 'river'])
+                    'entities': interpretation.get('entities', ['water'])
                 },
-                'rationale': 'Intent-based routing for water body detection using Roboflow API'
+                'rationale': 'Intent-based routing for water detection'
             }]
         
         elif intent == 'vegetation_detection':
@@ -143,15 +134,10 @@ class ToolSelector:
         """Extract relevant parameters for specific tool"""
         params = interpretation.get('parameters', {})
 
-        if tool_id in ['grounding_model', 'building_detector', 'roboflow_building_detector']:
+        if tool_id == 'grounding_model' or tool_id == 'building_detector':
             return {
-                'target_object': params.get('target_object', interpretation.get('target_object', 'building')),
+                'target_object': params.get('target_object', interpretation.get('target_object', '')),
                 'entities': interpretation.get('entities', [])
-            }
-        elif tool_id in ['waterbody_detector', 'roboflow_waterbody_detector']:
-            return {
-                'target_object': params.get('target_object', interpretation.get('target_object', 'water')),
-                'entities': interpretation.get('entities', ['water'])
             }
         elif tool_id == 'spectral_index_model':
             return {

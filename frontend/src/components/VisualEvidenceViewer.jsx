@@ -169,9 +169,9 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
                   }}
                 />
                 {results?.visual_evidence?.roboflow_annotated_image_b64 && (
-                  <div style={{ marginTop: '12px', padding: '12px', background: results?.visual_evidence?.roboflow_image_type === 'water' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(168, 85, 247, 0.1)', borderRadius: '8px', border: results?.visual_evidence?.roboflow_image_type === 'water' ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid rgba(168, 85, 247, 0.3)' }}>
-                    <p style={{ fontSize: '0.85rem', color: results?.visual_evidence?.roboflow_image_type === 'water' ? '#38bdf8' : '#a855f7', margin: 0 }}>
-                      ✓ Roboflow {results?.visual_evidence?.roboflow_image_type === 'water' ? 'Water Body' : 'Building'} Segmentation Analysis - AI-powered {results?.visual_evidence?.roboflow_image_type === 'water' ? 'water body' : 'building'} detection complete
+                  <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '8px', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                    <p style={{ fontSize: '0.85rem', color: '#a855f7', margin: 0 }}>
+                      ✓ Roboflow Segmentation Analysis - AI-powered building detection complete
                     </p>
                   </div>
                 )}

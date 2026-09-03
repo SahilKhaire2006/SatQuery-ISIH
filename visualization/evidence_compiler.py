@@ -35,7 +35,6 @@ class EvidenceCompiler:
         # 1. Check for Roboflow or Grounding Bounding Box Detections + Annotated Images
         all_detections = []
         annotated_image_b64 = None
-        annotated_image_type = None  # Track type: 'building' or 'water'
         
         logger.info(f"Evidence compilation: Processing {len(tool_results)} tool results")
         
@@ -50,27 +49,21 @@ class EvidenceCompiler:
                         all_detections.extend(out['detections'])
                         logger.info(f"Tool '{tool_id}' contributed {det_count} detections (total: {len(all_detections)})")
                     
-                    # Extract Roboflow annotated image (building or water body)
+                    # Extract Roboflow annotated image
                     if 'annotated_image' in out and out['annotated_image']:
                         annotated_image_b64 = out['annotated_image']
-                        # Determine type based on tool
-                        if 'waterbody' in tool_id.lower() or 'water' in tool_id.lower():
-                            annotated_image_type = 'water'
-                        else:
-                            annotated_image_type = 'building'
-                        logger.info(f"Found Roboflow {annotated_image_type} annotated image from '{tool_id}' (length: {len(annotated_image_b64)} chars)")
+                        logger.info(f"Found Roboflow annotated image from '{tool_id}' (length: {len(annotated_image_b64)} chars)")
                         logger.info(f"Annotated image preview: {annotated_image_b64[:100]}...")
 
         # If we have Roboflow annotated image, use it directly
         if annotated_image_b64:
             visual_outputs['roboflow_annotated_image_b64'] = f"data:image/png;base64,{annotated_image_b64}"
-            visual_outputs['roboflow_image_type'] = annotated_image_type  # 'building' or 'water'
-            logger.info(f"Added Roboflow {annotated_image_type} annotated image to visual outputs (key: roboflow_annotated_image_b64)")
+            logger.info(f"Added Roboflow annotated image to visual outputs (key: roboflow_annotated_image_b64)")
             evidence_records.append({
-                'evidence_type': f'roboflow_{annotated_image_type}_segmentation',
+                'evidence_type': 'roboflow_segmentation',
                 'source': 'roboflow_workflow',
                 'b64_key': 'roboflow_annotated_image_b64',
-                'description': f'AI-powered {annotated_image_type} segmentation from Roboflow workflow'
+                'description': 'AI-powered building segmentation from Roboflow workflow'
             })
         
         # If we have detection boxes, draw them
