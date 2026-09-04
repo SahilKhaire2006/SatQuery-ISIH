@@ -49,21 +49,20 @@ class EvidenceCompiler:
                         all_detections.extend(out['detections'])
                         logger.info(f"Tool '{tool_id}' contributed {det_count} detections (total: {len(all_detections)})")
                     
-                    # Extract Roboflow annotated image
+                    # Extract annotated image (from Roboflow or SpectralIndex)
                     if 'annotated_image' in out and out['annotated_image']:
                         annotated_image_b64 = out['annotated_image']
-                        logger.info(f"Found Roboflow annotated image from '{tool_id}' (length: {len(annotated_image_b64)} chars)")
-                        logger.info(f"Annotated image preview: {annotated_image_b64[:100]}...")
+                        logger.info(f"Found annotated image from '{tool_id}' (length: {len(annotated_image_b64)} chars)")
 
-        # If we have Roboflow annotated image, use it directly
+        # If we have an annotated image, use it directly
         if annotated_image_b64:
             visual_outputs['roboflow_annotated_image_b64'] = f"data:image/png;base64,{annotated_image_b64}"
-            logger.info(f"Added Roboflow annotated image to visual outputs (key: roboflow_annotated_image_b64)")
+            logger.info(f"Added annotated image to visual outputs (key: roboflow_annotated_image_b64)")
             evidence_records.append({
-                'evidence_type': 'roboflow_segmentation',
-                'source': 'roboflow_workflow',
+                'evidence_type': 'segmentation_overlay',
+                'source': 'model_workflow',
                 'b64_key': 'roboflow_annotated_image_b64',
-                'description': 'AI-powered building segmentation from Roboflow workflow'
+                'description': 'AI-powered segmentation/spectral analysis overlay'
             })
         
         # If we have detection boxes, draw them
@@ -77,8 +76,13 @@ class EvidenceCompiler:
                 'b64_key': 'bounding_box_overlay_b64'
             })
 
-        # 2. Generate GradCAM Spatial Attention Heatmap
-        _, attention_b64 = self.attention_generator.generate_attention_heatmap(image)
+        # Extract query for context-aware visualizations
+        query = interpretation.get('original_query', '')
+
+        # 2. Generate Query-Aware GradCAM Spatial Attention Heatmap
+        _, attention_b64 = self.attention_generator.generate_attention_heatmap(
+            image, detections=all_detections, query=query
+        )
         visual_outputs['spatial_attention_heatmap_b64'] = f"data:image/png;base64,{attention_b64}"
         evidence_records.append({
             'evidence_type': 'gradcam_attention_map',
@@ -86,8 +90,10 @@ class EvidenceCompiler:
             'b64_key': 'spatial_attention_heatmap_b64'
         })
 
-        # 3. Generate Spatial Activation Saliency Map
-        _, saliency_b64 = self.saliency_generator.compute_saliency_map(image)
+        # 3. Generate Query-Aware Spatial Saliency Map
+        _, saliency_b64 = self.saliency_generator.compute_saliency_map(
+            image, detections=all_detections, query=query
+        )
         visual_outputs['spatial_saliency_map_b64'] = f"data:image/png;base64,{saliency_b64}"
         evidence_records.append({
             'evidence_type': 'saliency_activation_map',
@@ -95,7 +101,7 @@ class EvidenceCompiler:
             'b64_key': 'spatial_saliency_map_b64'
         })
 
-        logger.info(f"✓ Evidence compilation complete: {len(evidence_records)} sources, {len(list(visual_outputs.keys()))} visual outputs")
+        logger.info(f"[OK] Evidence compilation complete: {len(evidence_records)} sources, {len(list(visual_outputs.keys()))} visual outputs")
         logger.info(f"  Visual output keys: {list(visual_outputs.keys())}")
         
         return {
@@ -103,3 +109,4 @@ class EvidenceCompiler:
             'evidence_records': evidence_records,
             'total_evidence_sources': len(evidence_records)
         }
+

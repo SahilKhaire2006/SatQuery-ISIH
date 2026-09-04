@@ -67,8 +67,10 @@ class QueryInterpreter:
         
         # Building detection intent
         building_keywords = ['building', 'structure', 'warehouse', 'factory', 'house', 'construction', 'rooftop']
+        building_action_keywords = ['count', 'how many', 'detect', 'locate', 'find', 'identify', 'show', 'where', 'any', 'are there', 'is there']
         if any(kw in query_lower for kw in building_keywords):
-            if any(action in query_lower for action in ['count', 'how many', 'detect', 'locate', 'find', 'identify']):
+            # Trigger building detection if any action keyword is present, OR if the query is short/simple
+            if any(action in query_lower for action in building_action_keywords) or len(query_lower.split()) <= 8:
                 return 'building_detection'
         
         # Water detection intent

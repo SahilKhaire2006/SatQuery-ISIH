@@ -42,11 +42,14 @@ class OverlayGenerator:
                     img_copy = img_copy.astype(np.uint8)
 
             if img_copy.ndim == 2:
-                img_copy = cv2.cvtColor(img_copy, cv2.COLOR_GRAY2BGR)
+                img_copy = np.stack([img_copy] * 3, axis=-1)
             elif img_copy.ndim == 3 and img_copy.shape[2] == 4:
-                img_copy = cv2.cvtColor(img_copy, cv2.COLOR_RGBA2BGR)
+                img_copy = img_copy[:, :, :3]
             elif img_copy.ndim == 3 and img_copy.shape[2] == 1:
-                img_copy = cv2.cvtColor(img_copy, cv2.COLOR_GRAY2BGR)
+                img_copy = np.concatenate([img_copy] * 3, axis=-1)
+
+            # Convert RGB to BGR for OpenCV drawing operations
+            img_copy = cv2.cvtColor(img_copy, cv2.COLOR_RGB2BGR)
 
             h, w = img_copy.shape[:2]
 

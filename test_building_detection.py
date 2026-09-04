@@ -20,10 +20,10 @@ async def test_building_detector():
     detector = RoboflowBuildingDetector()
     
     if not detector.loaded:
-        print("❌ Detector failed to load")
+        print("[-] Detector failed to load")
         return
     
-    print("✅ Detector loaded successfully\n")
+    print("[OK] Detector loaded successfully\n")
     
     # Check if test image exists
     test_image_paths = [
@@ -41,13 +41,13 @@ async def test_building_detector():
             break
     
     if not test_image_path:
-        print("⚠️ No test image found. Please provide a satellite image path.")
+        print("[!] No test image found. Please provide a satellite image path.")
         print("Available paths checked:")
         for path in test_image_paths:
             print(f"  - {path}")
         return
     
-    print(f"📸 Loading test image: {test_image_path}")
+    print(f"[+] Loading test image: {test_image_path}")
     
     # Load image
     try:
@@ -56,11 +56,11 @@ async def test_building_detector():
         print(f"   Image size: {image.size}")
         print(f"   Array shape: {image_array.shape}\n")
     except Exception as e:
-        print(f"❌ Failed to load image: {e}")
+        print(f"[-] Failed to load image: {e}")
         return
     
     # Run detection
-    print("🔍 Running building detection...")
+    print("[*] Running building detection...")
     try:
         result = await detector.predict(
             image=image_array,
@@ -76,18 +76,18 @@ async def test_building_detector():
         print(f"Detections: {len(result['output']['detections'])}")
         
         if result['output']['detections']:
-            print("\n📦 Top 5 Detections:")
+            print("\nTop 5 Detections:")
             for i, det in enumerate(result['output']['detections'][:5], 1):
                 bbox = det['bbox']
                 print(f"  {i}. {det['label']} - confidence: {det['confidence']:.2f} - bbox: [{bbox[0]}, {bbox[1]}, {bbox[2]}, {bbox[3]}]")
         
-        if result['status'] == 'ok':
-            print("\n✅ Building detection working correctly!")
+        if result['status'] in ['ok', 'segmentation_ok']:
+            print("\n[OK] Building detection working correctly!")
         else:
-            print(f"\n⚠️ Detection status: {result['status']}")
+            print(f"\n[!] Detection status: {result['status']}")
         
     except Exception as e:
-        print(f"❌ Detection failed: {e}")
+        print(f"[-] Detection failed: {e}")
         import traceback
         traceback.print_exc()
 

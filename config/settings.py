@@ -55,6 +55,9 @@ SUPPORTED_FORMATS = ['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.geotiff']
 AVAILABLE_TOOLS = [
     'vqa_model',
     'grounding_model',
+    'building_detector',
+    'roboflow_building_detector',
+    'spectral_index_model',
     'change_detection_model',
     'sar_fusion_model'
 ]

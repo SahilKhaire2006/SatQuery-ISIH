@@ -6,6 +6,7 @@ from models.vqa_model import VQAModel
 from models.grounding_model import GroundingModel
 from models.change_detection_model import ChangeDetectionModel
 from models.sar_fusion_model import SARFusionModel
+from models.spectral_index_model import SpectralIndexModel
 
 try:
     from models.building_detector import BuildingDetector
@@ -46,6 +47,7 @@ class ExecutionEngine:
             'grounding_model': GroundingModel(),
             'building_detector': building_detector,  # Roboflow or U-Net fallback
             'roboflow_building_detector': building_detector,  # Alias for explicit routing
+            'spectral_index_model': SpectralIndexModel(),  # NDVI/NDWI water & vegetation detection
             'change_detection_model': ChangeDetectionModel(),
             'sar_fusion_model': SARFusionModel()
         }

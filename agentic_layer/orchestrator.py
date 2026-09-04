@@ -89,8 +89,9 @@ class AgenticOrchestrator:
                 or 'synthetic' in str(image_filename).lower()
             )
             
-            # Fetch real 500m satellite map tile if image is missing/synthetic or location is in query
-            if is_synthetic_or_missing or any(kw in query.lower() for kw in [' near ', ' in ', ' at ', ' around ', 'located', 'find', 'search', 'coordinates']):
+            # Only fetch a map tile when the user did NOT upload a real image.
+            # When a real image is uploaded, always use it for analysis.
+            if is_synthetic_or_missing:
                 try:
                     from geospatial.map_fetcher import geocode_location, fetch_satellite_image_tile
                     lat, lon, display_name = geocode_location(query)
@@ -112,6 +113,9 @@ class AgenticOrchestrator:
                             image_for_execution = np.array(Image.open("satelite-img.png").convert("RGB"))
                         else:
                             image_for_execution = np.zeros((512, 512, 3), dtype=np.uint8)
+            else:
+                logger.info(f"Using user-uploaded image for analysis (shape: {image_for_execution.shape})")
+
 
             execution_result = await self.execution_engine.execute(
                 tools=selected_tools,
@@ -135,21 +139,30 @@ class AgenticOrchestrator:
             final_results['visual_evidence'] = aggregated.get('visual_evidence', {})
             final_results['geospatial_metadata'] = parsed_geo
             
-            # Always include bounding boxes structure for frontend
             tool_details = execution_result['results'].get('details', execution_result['results'])
-            grounding_output = tool_details.get('grounding_model', {})
-            building_output = tool_details.get('building_detector', {})
+            grounding_output = tool_details.get('text_guided_grounding_model', tool_details.get('grounding_model', {}))
+            building_output = tool_details.get('roboflow_building_detector', tool_details.get('building_detector', {}))
+            spectral_output = tool_details.get('spectral_index_model', {})
             
-            # Prioritize building detector / grounding model results if available
-            if building_output and isinstance(building_output, dict):
+            # Prioritize building detector / grounding model / spectral index results if available
+            if building_output and isinstance(building_output, dict) and building_output.get('detections'):
                 detection_source = building_output
-                model_used_name = 'text_guided_grounding_model'
-            elif grounding_output and isinstance(grounding_output, dict):
+                model_used_name = 'roboflow_building_detector'
+            elif grounding_output and isinstance(grounding_output, dict) and grounding_output.get('detections'):
                 detection_source = grounding_output
                 model_used_name = 'text_guided_grounding_model'
+            elif spectral_output and isinstance(spectral_output, dict) and spectral_output.get('detections'):
+                detection_source = spectral_output
+                model_used_name = 'spectral_index_model'
             else:
+                # Scan all tools for detections fallback
                 detection_source = {}
                 model_used_name = 'none'
+                for tool_k, tool_v in tool_details.items():
+                    if isinstance(tool_v, dict) and tool_v.get('detections'):
+                        detection_source = tool_v
+                        model_used_name = tool_k
+                        break
             
             detections = detection_source.get('detections', []) if isinstance(detection_source, dict) else []
             img_shape = image_for_execution.shape if image_for_execution is not None else (0, 0)
