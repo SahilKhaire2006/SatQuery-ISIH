@@ -75,6 +75,21 @@ class ToolSelector:
                 },
                 'rationale': 'Intent-based routing for building detection using Roboflow API'
             }]
+            
+            # Check if query also asks for water or vegetation features
+            if any(w in q_lower for w in ['water', 'river', 'lake', 'pond', 'ocean', 'vegetation', 'forest', 'tree', 'greenery']):
+                logger.info("Multi-feature query detected: Appending spectral_index_model to tool sequence")
+                tools.append({
+                    'tool_id': 'spectral_index_model',
+                    'tool_name': 'Spectral Index Model (Water & Vegetation)',
+                    'order': 2,
+                    'parameters': {
+                        'index_type': 'both',
+                        'target_object': 'water_vegetation',
+                        'entities': [e for e in ['water', 'vegetation'] if e in q_lower or True]
+                    },
+                    'rationale': 'Multi-feature routing for water/vegetation alongside building detection'
+                })
         
         elif intent == 'water_detection':
             logger.info("Intent routing: water_detection -> spectral_index_model (NDWI)")

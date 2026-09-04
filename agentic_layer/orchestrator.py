@@ -140,52 +140,39 @@ class AgenticOrchestrator:
             final_results['geospatial_metadata'] = parsed_geo
             
             tool_details = execution_result['results'].get('details', execution_result['results'])
-            grounding_output = tool_details.get('text_guided_grounding_model', tool_details.get('grounding_model', {}))
-            building_output = tool_details.get('roboflow_building_detector', tool_details.get('building_detector', {}))
-            spectral_output = tool_details.get('spectral_index_model', {})
             
-            # Prioritize building detector / grounding model / spectral index results if available
-            if building_output and isinstance(building_output, dict) and building_output.get('detections'):
-                detection_source = building_output
-                model_used_name = 'roboflow_building_detector'
-            elif grounding_output and isinstance(grounding_output, dict) and grounding_output.get('detections'):
-                detection_source = grounding_output
-                model_used_name = 'text_guided_grounding_model'
-            elif spectral_output and isinstance(spectral_output, dict) and spectral_output.get('detections'):
-                detection_source = spectral_output
-                model_used_name = 'spectral_index_model'
-            else:
-                # Scan all tools for detections fallback
-                detection_source = {}
-                model_used_name = 'none'
-                for tool_k, tool_v in tool_details.items():
-                    if isinstance(tool_v, dict) and tool_v.get('detections'):
-                        detection_source = tool_v
-                        model_used_name = tool_k
-                        break
-            
-            detections = detection_source.get('detections', []) if isinstance(detection_source, dict) else []
+            # Combine detections from ALL executed tools (buildings, water bodies, vegetation, etc.)
+            all_detections = []
+            models_used = []
+
+            for tool_k, tool_v in tool_details.items():
+                if isinstance(tool_v, dict) and tool_v.get('detections'):
+                    dets = tool_v['detections']
+                    all_detections.extend(dets)
+                    models_used.append(tool_k)
+
+            model_used_name = ", ".join(models_used) if models_used else "none"
             img_shape = image_for_execution.shape if image_for_execution is not None else (0, 0)
             
             final_results['bounding_boxes'] = {
                 'detections': [
                     {
                         'label': d.get('label', 'object'),
-                        'confidence': d.get('confidence', 0.0),
+                        'confidence': d.get('confidence', 0.85),
                         'bbox': d.get('bbox', [0, 0, 0, 0])  # [x1, y1, x2, y2]
                     }
-                    for d in detections
+                    for d in all_detections
                 ],
-                'status': 'success' if detections else 'completed',
+                'status': 'success' if all_detections else 'completed',
                 'image_dimensions': {
                     'width': img_shape[1] if len(img_shape) > 1 else 0,
                     'height': img_shape[0] if len(img_shape) > 0 else 0
                 },
-                'count': len(detections),
+                'count': len(all_detections),
                 'model_used': model_used_name
             }
             
-            logger.info(f"Bounding boxes: {len(detections)} detections from {final_results['bounding_boxes']['model_used']}, visual_evidence keys: {list(final_results['visual_evidence'].keys())}")
+            logger.info(f"Bounding boxes: {len(all_detections)} detections from {final_results['bounding_boxes']['model_used']}, visual_evidence keys: {list(final_results['visual_evidence'].keys())}")
 
             return {
                 'query_id': query_id,
