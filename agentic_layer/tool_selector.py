@@ -48,6 +48,12 @@ class ToolSelector:
                 'name': 'SAR Fusion Model',
                 'tasks': ['sar_fusion', 'cross_modal', 'radar'],
                 'priority': 4
+            },
+            'disaster_grounding_model': {
+                'name': 'Disaster Management Grounding Model',
+                'tasks': ['disaster_analysis', 'flood_mapping', 'earthquake_assessment',
+                          'evacuation_planning', 'disaster_prediction'],
+                'priority': 1
             }
         }
 
@@ -127,6 +133,22 @@ class ToolSelector:
                 'order': 1,
                 'parameters': interpretation.get('parameters', {}),
                 'rationale': 'Intent-based routing for temporal change analysis'
+            }]
+        
+        elif intent.startswith('disaster_'):
+            disaster_type = intent.replace('disaster_', '')
+            logger.info(f"Intent routing: {intent} -> disaster_grounding_model")
+            tools = [{
+                'tool_id': 'disaster_grounding_model',
+                'tool_name': 'Disaster Management Grounding Model',
+                'order': 1,
+                'parameters': {
+                    'disaster_type': disaster_type,
+                    'location': interpretation.get('original_query', ''),
+                    'coordinates': interpretation.get('spatial_metadata', {}).get('coordinates'),
+                    'temporal_range': interpretation.get('temporal_aspects', {})
+                },
+                'rationale': f'Intent-based routing for {disaster_type} disaster analysis'
             }]
         
         else:

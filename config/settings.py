@@ -40,6 +40,16 @@ HF_VQA_MODEL = os.getenv('HF_VQA_MODEL', 'Salesforce/blip-vqa-base')
 HF_GROUNDING_MODEL = os.getenv('HF_GROUNDING_MODEL', 'google/owlvit-base-patch32')
 HF_FEATURE_MODEL = os.getenv('HF_FEATURE_MODEL', 'google/vit-base-patch16-224')
 
+# Copernicus Data Space / Sentinel Hub (for real-time satellite imagery)
+COPERNICUS_CLIENT_ID = os.getenv('COPERNICUS_CLIENT_ID', '')
+COPERNICUS_CLIENT_SECRET = os.getenv('COPERNICUS_CLIENT_SECRET', '')
+SENTINEL_HUB_BASE_URL = os.getenv('SENTINEL_HUB_BASE_URL',
+    'https://sh.dataspace.copernicus.eu')
+
+# Disaster Analysis Settings (Model 2)
+DISASTER_TEMPORAL_LOOKBACK_DAYS = int(os.getenv('DISASTER_TEMPORAL_LOOKBACK_DAYS', 14))
+FLOOD_NDWI_THRESHOLD = float(os.getenv('FLOOD_NDWI_THRESHOLD', 0.3))
+SAR_FLOOD_THRESHOLD = float(os.getenv('SAR_FLOOD_THRESHOLD', -15))
 
 
 
@@ -59,5 +69,6 @@ AVAILABLE_TOOLS = [
     'roboflow_building_detector',
     'spectral_index_model',
     'change_detection_model',
-    'sar_fusion_model'
+    'sar_fusion_model',
+    'disaster_grounding_model',
 ]

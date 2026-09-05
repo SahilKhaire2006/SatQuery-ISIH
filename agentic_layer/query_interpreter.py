@@ -59,12 +59,31 @@ class QueryInterpreter:
     def _classify_intent(self, query: str, interpretation: Dict) -> str:
         """
         Classify query intent into specific categories for tool routing
-        Priority order: building_detection > water_detection > vegetation_detection > change_detection > general_vqa
+        Priority order: disaster > building_detection > water_detection > vegetation_detection > change_detection > general_vqa
         """
         query_lower = query.lower()
         task_type = interpretation.get('task_type', 'vqa')
         entities = interpretation.get('entities', [])
         
+        # Disaster intent (highest priority — Model 2)
+        flood_keywords = ['flood', 'inundation', 'water level', 'submerged',
+                          'flood progression', 'flood extent', 'riverbank overflow',
+                          'deluge', 'waterlogging', 'flash flood']
+        earthquake_keywords = ['earthquake', 'seismic', 'structural damage',
+                               'collapsed building', 'richter', 'magnitude',
+                               'tremor', 'aftershock', 'quake']
+        disaster_keywords = ['disaster', 'evacuation', 'tsunami', 'cyclone',
+                             'hurricane', 'landslide', 'wildfire', 'storm surge',
+                             'rescue', 'damage assessment', 'relief',
+                             'emergency response', 'catastrophe']
+
+        if any(kw in query_lower for kw in flood_keywords):
+            return 'disaster_flood'
+        if any(kw in query_lower for kw in earthquake_keywords):
+            return 'disaster_earthquake'
+        if any(kw in query_lower for kw in disaster_keywords):
+            return 'disaster_general'
+
         # Building detection intent
         building_keywords = ['building', 'structure', 'warehouse', 'factory', 'house', 'construction', 'rooftop']
         building_action_keywords = ['count', 'how many', 'detect', 'locate', 'find', 'identify', 'show', 'where', 'any', 'are there', 'is there']

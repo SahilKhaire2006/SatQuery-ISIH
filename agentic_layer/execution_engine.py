@@ -18,6 +18,12 @@ try:
 except ImportError:
     RoboflowBuildingDetector = None
 
+try:
+    from models.disaster_analysis.disaster_grounding_model import DisasterGroundingModel
+    DISASTER_MODEL_AVAILABLE = True
+except ImportError:
+    DISASTER_MODEL_AVAILABLE = False
+
 from utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -51,6 +57,14 @@ class ExecutionEngine:
             'change_detection_model': ChangeDetectionModel(),
             'sar_fusion_model': SARFusionModel()
         }
+        
+        # Model 2: Disaster Management Grounding Model
+        if DISASTER_MODEL_AVAILABLE:
+            self.models['disaster_grounding_model'] = DisasterGroundingModel()
+            logger.info("Disaster Grounding Model (Model 2) loaded successfully")
+        else:
+            logger.warning("Disaster Grounding Model not available (import error)")
+        
         logger.info("Execution Engine initialized with all models")
     
     async def execute(

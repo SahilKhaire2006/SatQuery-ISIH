@@ -113,6 +113,9 @@ async def process_query(
             geo_metadata=geo_metadata
         )
 
+        from utils.json_sanitizer import sanitize_for_json
+        result = sanitize_for_json(result)
+
         session_manager.update_session(session_id, result)
         cache.set(query, image_data, result)
 
@@ -124,7 +127,7 @@ async def process_query(
             status=result['status'],
             explanation=result.get('explanation'),
             results=result['results'],
-            confidence=result['confidence'],
+            confidence=float(result['confidence']),
             audit_log=result['audit_log'],
             timestamp=datetime.now().isoformat()
         )

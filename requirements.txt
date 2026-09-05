@@ -40,3 +40,7 @@ segmentation-models-pytorch>=0.3.0
 
 # Roboflow Inference API
 inference-sdk>=0.9.0
+
+# Real-Time Satellite Imagery (Model 2 - Disaster Management)
+sentinelhub>=3.10.0
+earthaccess>=0.9.0

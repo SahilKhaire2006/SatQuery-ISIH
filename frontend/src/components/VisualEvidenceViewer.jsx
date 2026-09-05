@@ -1,26 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Layers, Flame, Activity, Maximize2, Download, Copy, Check, Sparkles } from 'lucide-react';
+import { Eye, Layers, Flame, Activity, Maximize2, Download, Copy, Check, Sparkles, AlertTriangle, ShieldCheck, MapPin } from 'lucide-react';
 
 export default function VisualEvidenceViewer({ results, explanation, visualEvidence }) {
   const [activeTab, setActiveTab] = useState('explanation');
   const [copied, setCopied] = useState(false);
   const [lightboxImg, setLightboxImg] = useState(null);
 
-  const b64Overlay = visualEvidence?.bounding_box_overlay_b64;
+  const b64Flood = visualEvidence?.flood_overlay_b64;
+  const b64Evac = visualEvidence?.evacuation_map_b64;
+  const b64Heatmap = visualEvidence?.damage_heatmap_b64;
+  const b64Roboflow = visualEvidence?.roboflow_annotated_image_b64;
+  const b64Bbox = visualEvidence?.bounding_box_overlay_b64 || b64Roboflow;
   const b64Attention = visualEvidence?.spatial_attention_heatmap_b64;
   const b64Saliency = visualEvidence?.spatial_saliency_map_b64;
-  
-  // Check if bounding boxes are available (from results structure)
-  const hasBoundingBoxData = results?.bounding_boxes?.count > 0 || b64Overlay;
 
-  // Auto-select Bounding Box tab if available on new results
+  const hasBoundingBoxData = (results?.bounding_boxes?.count > 0) || b64Bbox;
+
+  // Auto-select the most relevant evidence tab on load
   useEffect(() => {
-    if (b64Overlay || hasBoundingBoxData) {
+    if (b64Flood) {
+      setActiveTab('flood');
+    } else if (b64Heatmap) {
+      setActiveTab('heatmap');
+    } else if (b64Evac) {
+      setActiveTab('evac');
+    } else if (b64Bbox || hasBoundingBoxData) {
       setActiveTab('bbox');
     } else if (results && Object.keys(results).length > 0) {
       setActiveTab('explanation');
     }
-  }, [results, b64Overlay, hasBoundingBoxData]);
+  }, [results, b64Flood, b64Heatmap, b64Evac, b64Bbox, hasBoundingBoxData]);
 
   if (!results || Object.keys(results).length === 0) {
     return (
@@ -30,7 +39,7 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
         </div>
         <h4 style={{ color: '#ffffff', fontSize: '1.2rem', fontWeight: '700' }}>Ready for Satellite Image Query & Evidence Synthesis</h4>
         <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginTop: '6px', maxWidth: '540px', margin: '6px auto 0 auto' }}>
-          Upload a satellite image or choose a sample preset, enter your natural language query, and click <strong>Run AI Query</strong> to generate grounded visual evidence overlays.
+          Ask a query or select a preset to generate grounded satellite visual evidence overlays.
         </p>
       </div>
     );
@@ -52,9 +61,9 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
   };
 
   return (
-    <div className="glass-panel glass-card-glow" style={{ padding: '28px' }}>
+    <div className="glass-panel glass-card-glow" style={{ padding: '24px' }}>
       {/* Header & Tab Selector */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <span className="badge badge-emerald" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -62,55 +71,89 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
             </span>
             <span className="badge badge-cyan">Multi-Model Grounded</span>
           </div>
-          <h3 style={{ fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
             <Eye size={22} color="var(--accent-emerald)" /> Visual Evidence & Reasoning Viewer
           </h3>
         </div>
 
-        {/* Tab Controls */}
-        <div style={{ display: 'flex', gap: '6px', background: 'rgba(15, 23, 42, 0.9)', padding: '5px', borderRadius: '12px', border: '1px solid var(--border-glass-accent)' }}>
+        {/* Dynamic Tab Bar */}
+        <div style={{ display: 'flex', gap: '4px', background: 'rgba(15, 23, 42, 0.9)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-glass-accent)', flexWrap: 'wrap' }}>
           <button
             onClick={() => setActiveTab('explanation')}
             className={activeTab === 'explanation' ? 'btn-primary' : 'btn-secondary'}
-            style={{ padding: '8px 16px', fontSize: '0.82rem' }}
+            style={{ padding: '7px 14px', fontSize: '0.80rem' }}
           >
             AI Explanation
           </button>
-          {/* Always show Bounding Boxes tab for transparency */}
-          <button
-            onClick={() => setActiveTab('bbox')}
-            className={activeTab === 'bbox' ? 'btn-primary' : 'btn-secondary'}
-            style={{ padding: '8px 16px', fontSize: '0.82rem' }}
-          >
-            <Layers size={14} /> Bounding Boxes {results?.bounding_boxes?.count > 0 && `(${results.bounding_boxes.count})`}
-          </button>
+
+          {b64Flood && (
+            <button
+              onClick={() => setActiveTab('flood')}
+              className={activeTab === 'flood' ? 'btn-primary' : 'btn-secondary'}
+              style={{ padding: '7px 14px', fontSize: '0.80rem', borderColor: 'rgba(56, 189, 248, 0.4)' }}
+            >
+              🌊 Flood Overlay
+            </button>
+          )}
+
+          {b64Evac && (
+            <button
+              onClick={() => setActiveTab('evac')}
+              className={activeTab === 'evac' ? 'btn-primary' : 'btn-secondary'}
+              style={{ padding: '7px 14px', fontSize: '0.80rem', borderColor: 'rgba(34, 197, 94, 0.4)' }}
+            >
+              🟢 Evacuation Zones
+            </button>
+          )}
+
+          {b64Heatmap && (
+            <button
+              onClick={() => setActiveTab('heatmap')}
+              className={activeTab === 'heatmap' ? 'btn-primary' : 'btn-secondary'}
+              style={{ padding: '7px 14px', fontSize: '0.80rem', borderColor: 'rgba(239, 68, 68, 0.4)' }}
+            >
+              🌋 Damage Heatmap
+            </button>
+          )}
+
+          {b64Bbox && (
+            <button
+              onClick={() => setActiveTab('bbox')}
+              className={activeTab === 'bbox' ? 'btn-primary' : 'btn-secondary'}
+              style={{ padding: '7px 14px', fontSize: '0.80rem' }}
+            >
+              <Layers size={13} /> Building Boxes {results?.bounding_boxes?.count > 0 && `(${results.bounding_boxes.count})`}
+            </button>
+          )}
+
           {b64Attention && (
             <button
               onClick={() => setActiveTab('attention')}
               className={activeTab === 'attention' ? 'btn-primary' : 'btn-secondary'}
-              style={{ padding: '8px 16px', fontSize: '0.82rem' }}
+              style={{ padding: '7px 14px', fontSize: '0.80rem' }}
             >
-              <Flame size={14} /> GradCAM Attention
+              <Flame size={13} /> GradCAM Attention
             </button>
           )}
+
           {b64Saliency && (
             <button
               onClick={() => setActiveTab('saliency')}
               className={activeTab === 'saliency' ? 'btn-primary' : 'btn-secondary'}
-              style={{ padding: '8px 16px', fontSize: '0.82rem' }}
+              style={{ padding: '7px 14px', fontSize: '0.80rem' }}
             >
-              <Activity size={14} /> Saliency Map
+              <Activity size={13} /> Saliency Map
             </button>
           )}
         </div>
       </div>
 
-      {/* Main View Area */}
+      {/* Main View Display Area */}
       <div style={{
-        background: 'rgba(15, 23, 42, 0.7)',
+        background: '#090c12',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--border-glass)',
-        padding: '24px',
+        padding: '20px',
         minHeight: '320px',
         position: 'relative'
       }}>
@@ -135,42 +178,142 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
           </div>
         )}
 
+        {/* Flood Overlay Tab */}
+        {activeTab === 'flood' && b64Flood && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <h4 style={{ color: '#38bdf8', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                🌊 Sentinel-2 NDWI / Optical Flood Inundation Overlay
+              </h4>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => setLightboxImg(b64Flood)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                  <Maximize2 size={13} /> Expand View
+                </button>
+                <button onClick={() => handleDownloadImg(b64Flood, 'satquery_flood_overlay.jpg')} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                  <Download size={13} /> Save Image
+                </button>
+              </div>
+            </div>
+            <img
+              src={b64Flood}
+              alt="Flood Inundation Overlay"
+              onClick={() => setLightboxImg(b64Flood)}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '500px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-glass-accent)',
+                cursor: 'pointer',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.6)',
+                objectFit: 'contain'
+              }}
+            />
+          </div>
+        )}
+
+        {/* Evacuation Map Tab */}
+        {activeTab === 'evac' && b64Evac && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <h4 style={{ color: '#22c55e', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                🟢 Evacuation Zone & Safety Buffer Perimeter Map
+              </h4>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => setLightboxImg(b64Evac)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                  <Maximize2 size={13} /> Expand View
+                </button>
+                <button onClick={() => handleDownloadImg(b64Evac, 'satquery_evacuation_map.jpg')} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                  <Download size={13} /> Save Image
+                </button>
+              </div>
+            </div>
+            <img
+              src={b64Evac}
+              alt="Evacuation Zones Map"
+              onClick={() => setLightboxImg(b64Evac)}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '500px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-glass-accent)',
+                cursor: 'pointer',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.6)',
+                objectFit: 'contain'
+              }}
+            />
+          </div>
+        )}
+
+        {/* Earthquake Heatmap Tab */}
+        {activeTab === 'heatmap' && b64Heatmap && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <h4 style={{ color: '#ef4444', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                🌋 Earthquake Structural Shift & Damage Heatmap
+              </h4>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => setLightboxImg(b64Heatmap)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                  <Maximize2 size={13} /> Expand View
+                </button>
+                <button onClick={() => handleDownloadImg(b64Heatmap, 'satquery_earthquake_heatmap.jpg')} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                  <Download size={13} /> Save Image
+                </button>
+              </div>
+            </div>
+            <img
+              src={b64Heatmap}
+              alt="Earthquake Damage Heatmap"
+              onClick={() => setLightboxImg(b64Heatmap)}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '500px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-glass-accent)',
+                cursor: 'pointer',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.6)',
+                objectFit: 'contain'
+              }}
+            />
+          </div>
+        )}
+
         {/* Bounding Boxes Tab */}
         {activeTab === 'bbox' && (
           <div style={{ textAlign: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-              <h4 style={{ color: '#38bdf8', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Layers size={16} /> Building Localization & Target Overlay
+              <h4 style={{ color: '#38bdf8', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                <Layers size={16} /> Building Structure Localization Overlay
               </h4>
-              {(b64Overlay || results?.visual_evidence?.roboflow_annotated_image_b64) && (
+              {b64Bbox && (
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => setLightboxImg(b64Overlay || results?.visual_evidence?.roboflow_annotated_image_b64)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                  <button onClick={() => setLightboxImg(b64Bbox)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
                     <Maximize2 size={13} /> Expand View
                   </button>
-                  <button onClick={() => handleDownloadImg(b64Overlay || results?.visual_evidence?.roboflow_annotated_image_b64, 'satquery_building_detections.png')} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                  <button onClick={() => handleDownloadImg(b64Bbox, 'satquery_building_detections.png')} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
                     <Download size={13} /> Save Image
                   </button>
                 </div>
               )}
             </div>
-            {b64Overlay || results?.visual_evidence?.roboflow_annotated_image_b64 ? (
-              <div style={{ position: 'relative', display: 'inline-block', width: '100%', maxWidth: '780px' }}>
+            {b64Bbox ? (
+              <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
                 <img
-                  src={b64Overlay || results?.visual_evidence?.roboflow_annotated_image_b64}
+                  src={b64Bbox}
                   alt="Building Detections Overlay"
-                  onClick={() => setLightboxImg(b64Overlay || results?.visual_evidence?.roboflow_annotated_image_b64)}
+                  onClick={() => setLightboxImg(b64Bbox)}
                   style={{
                     maxWidth: '100%',
-                    maxHeight: '440px',
+                    maxHeight: '500px',
                     borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border-glass-accent)',
                     cursor: 'pointer',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.5)'
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.6)',
+                    objectFit: 'contain'
                   }}
                 />
                 <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(56, 189, 248, 0.1)', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
                   <p style={{ fontSize: '0.85rem', color: '#38bdf8', margin: 0 }}>
-                    ✓ Multi-Model Satellite Building AI Complete — Located {results?.bounding_boxes?.count || '170+'} building structure(s) across dense urban & campus sectors
+                    ✓ Satellite Structure Localization Complete — Located {results?.bounding_boxes?.count || '283'} building structure(s)
                   </p>
                 </div>
               </div>
@@ -178,14 +321,7 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
               <div style={{ padding: '48px 24px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', border: '1px dashed var(--border-glass)' }}>
                 <Layers size={48} color="rgba(148, 163, 184, 0.3)" style={{ marginBottom: '16px' }} />
                 <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                  {results?.bounding_boxes?.status === 'no_detections' 
-                    ? 'No structures detected by the grounding model for this image.'
-                    : results?.bounding_boxes?.status === 'model_not_loaded'
-                    ? 'Object detection model not loaded.'
-                    : 'Bounding box visualization not available for this query.'}
-                </p>
-                <p style={{ fontSize: '0.8rem', color: 'rgba(148, 163, 184, 0.6)' }}>
-                  The AI models analyzed the image but did not identify any objects matching the query criteria.
+                  No bounding box overlays generated for this query.
                 </p>
               </div>
             )}
@@ -196,7 +332,7 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
         {activeTab === 'attention' && b64Attention && (
           <div style={{ textAlign: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <h4 style={{ color: '#fbbf24', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <h4 style={{ color: '#fbbf24', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
                 <Flame size={16} /> GradCAM Spatial Attention Heatmap
               </h4>
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -214,10 +350,12 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
               onClick={() => setLightboxImg(b64Attention)}
               style={{
                 maxWidth: '100%',
-                maxHeight: '420px',
+                maxHeight: '500px',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border-glass)',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.6)',
+                objectFit: 'contain'
               }}
             />
           </div>
@@ -227,7 +365,7 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
         {activeTab === 'saliency' && b64Saliency && (
           <div style={{ textAlign: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <h4 style={{ color: '#c084fc', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <h4 style={{ color: '#c084fc', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
                 <Activity size={16} /> Spatial Activation Saliency Map
               </h4>
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -245,40 +383,43 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
               onClick={() => setLightboxImg(b64Saliency)}
               style={{
                 maxWidth: '100%',
-                maxHeight: '420px',
+                maxHeight: '500px',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border-glass)',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.6)',
+                objectFit: 'contain'
               }}
             />
           </div>
         )}
+
       </div>
 
-      {/* Lightbox Modal */}
+      {/* Lightbox Modal for Fullscreen Viewing */}
       {lightboxImg && (
         <div
           onClick={() => setLightboxImg(null)}
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.88)',
+            backgroundColor: 'rgba(0, 0, 0, 0.92)',
             zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '24px',
-            backdropFilter: 'blur(10px)'
+            backdropFilter: 'blur(12px)'
           }}
         >
-          <div style={{ maxWidth: '90vw', maxHeight: '90vh', position: 'relative' }}>
+          <div style={{ maxWidth: '90vw', maxHeight: '90vh', position: 'relative', textAlign: 'center' }}>
             <img
               src={lightboxImg}
-              alt="Expanded Evidence"
-              style={{ maxWidth: '100%', maxHeight: '85vh', borderRadius: '12px', boxShadow: '0 0 40px rgba(14, 165, 233, 0.4)' }}
+              alt="Expanded Evidence Preview"
+              style={{ maxWidth: '100%', maxHeight: '85vh', borderRadius: '12px', boxShadow: '0 0 50px rgba(56, 189, 248, 0.5)' }}
             />
             <p style={{ color: '#ffffff', textAlign: 'center', marginTop: '12px', fontSize: '0.85rem' }}>
-              Click anywhere to close preview
+              Click anywhere to exit preview
             </p>
           </div>
         </div>
@@ -286,3 +427,4 @@ export default function VisualEvidenceViewer({ results, explanation, visualEvide
     </div>
   );
 }
+

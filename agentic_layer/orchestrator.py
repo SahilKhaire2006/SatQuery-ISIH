@@ -82,39 +82,54 @@ class AgenticOrchestrator:
             image_for_execution = validation_result['processed_image']
             image_filename = validation_result.get('image_filename', '')
             
-            # Detect if uploaded image is dummy synthetic canvas (<= 150px) or missing
-            is_synthetic_or_missing = (
-                image_for_execution is None
-                or (isinstance(image_for_execution, np.ndarray) and (image_for_execution.shape[0] <= 150 or image_for_execution.shape[1] <= 150))
-                or 'synthetic' in str(image_filename).lower()
+            # Check if disaster grounding model is selected (Model 2)
+            # Disaster model fetches its own real satellite imagery internally,
+            # so we skip the default tile fetch to avoid unnecessary API calls.
+            is_disaster_query = any(
+                t.get('tool_id') == 'disaster_grounding_model'
+                for t in selected_tools
             )
             
-            # Only fetch a map tile when the user did NOT upload a real image.
-            # When a real image is uploaded, always use it for analysis.
-            if is_synthetic_or_missing:
-                try:
-                    from geospatial.map_fetcher import geocode_location, fetch_satellite_image_tile
-                    lat, lon, display_name = geocode_location(query)
-                    tile_info = fetch_satellite_image_tile(lat, lon, area_meters=500.0)
-                    image_for_execution = tile_info['image']
-                    
-                    # Update geospatial metadata with real geocoded coordinates
-                    parsed_geo['center_coords'] = {'lat': lat, 'lon': lon}
-                    parsed_geo['spatial_bounds'] = tile_info.get('bbox_geo', [lon-0.002, lat-0.002, lon+0.002, lat+0.002])
-                    parsed_geo['display_name'] = display_name
-                    interpretation['geospatial_context'] = parsed_geo
-                    
-                    logger.info(f"Automated 500m satellite tile successfully fetched for '{display_name}' ({lat:.5f}, {lon:.5f})")
-                except Exception as map_err:
-                    logger.warning(f"Could not fetch map tile ({map_err}). Using default image.")
-                    if image_for_execution is None:
-                        from PIL import Image
-                        if Path("satelite-img.png").exists():
-                            image_for_execution = np.array(Image.open("satelite-img.png").convert("RGB"))
-                        else:
-                            image_for_execution = np.zeros((512, 512, 3), dtype=np.uint8)
+            if is_disaster_query:
+                # Disaster model handles its own imagery — provide placeholder
+                logger.info("Disaster query detected — Model 2 will fetch its own real satellite imagery")
+                if image_for_execution is None:
+                    image_for_execution = np.zeros((512, 512, 3), dtype=np.uint8)
             else:
-                logger.info(f"Using user-uploaded image for analysis (shape: {image_for_execution.shape})")
+                # Detect if uploaded image is dummy synthetic canvas (<= 150px) or missing
+                is_synthetic_or_missing = (
+                    image_for_execution is None
+                    or (isinstance(image_for_execution, np.ndarray) and (image_for_execution.shape[0] <= 150 or image_for_execution.shape[1] <= 150))
+                    or 'synthetic' in str(image_filename).lower()
+                )
+                
+                # Only fetch a map tile when the user did NOT upload a real image.
+                # When a real image is uploaded, always use it for analysis.
+                if is_synthetic_or_missing:
+                    try:
+                        from geospatial.map_fetcher import geocode_location, fetch_satellite_image_tile
+                        lat, lon, display_name = geocode_location(query)
+                        tile_info = fetch_satellite_image_tile(lat, lon, area_meters=500.0)
+                        image_for_execution = tile_info['image']
+                        
+                        # Update geospatial metadata with real geocoded coordinates
+                        parsed_geo['center_coords'] = {'lat': lat, 'lon': lon}
+                        parsed_geo['spatial_bounds'] = tile_info.get('bbox_geo', [lon-0.002, lat-0.002, lon+0.002, lat+0.002])
+                        parsed_geo['display_name'] = display_name
+                        interpretation['geospatial_context'] = parsed_geo
+                        
+                        logger.info(f"Automated 500m satellite tile successfully fetched for '{display_name}' ({lat:.5f}, {lon:.5f})")
+                    except Exception as map_err:
+                        logger.warning(f"Could not fetch map tile ({map_err}). Using default image.")
+                        if image_for_execution is None:
+                            from PIL import Image
+                            if Path("satelite-img.png").exists():
+                                image_for_execution = np.array(Image.open("satelite-img.png").convert("RGB"))
+                            else:
+                                image_for_execution = np.zeros((512, 512, 3), dtype=np.uint8)
+                else:
+                    logger.info(f"Using user-uploaded image for analysis (shape: {image_for_execution.shape})")
+
 
 
             execution_result = await self.execution_engine.execute(
@@ -141,14 +156,24 @@ class AgenticOrchestrator:
             
             tool_details = execution_result['results'].get('details', execution_result['results'])
             
+            def _extract_dets(obj):
+                dets = []
+                if isinstance(obj, dict):
+                    if 'detections' in obj and isinstance(obj['detections'], list):
+                        dets.extend(obj['detections'])
+                    for k, v in obj.items():
+                        if isinstance(v, dict):
+                            dets.extend(_extract_dets(v))
+                return dets
+
             # Combine detections from ALL executed tools (buildings, water bodies, vegetation, etc.)
             all_detections = []
             models_used = []
 
             for tool_k, tool_v in tool_details.items():
-                if isinstance(tool_v, dict) and tool_v.get('detections'):
-                    dets = tool_v['detections']
-                    all_detections.extend(dets)
+                found_dets = _extract_dets(tool_v)
+                if found_dets:
+                    all_detections.extend(found_dets)
                     models_used.append(tool_k)
 
             model_used_name = ", ".join(models_used) if models_used else "none"
@@ -158,7 +183,7 @@ class AgenticOrchestrator:
                 'detections': [
                     {
                         'label': d.get('label', 'object'),
-                        'confidence': d.get('confidence', 0.85),
+                        'confidence': float(d.get('confidence', 0.85)),
                         'bbox': d.get('bbox', [0, 0, 0, 0])  # [x1, y1, x2, y2]
                     }
                     for d in all_detections
@@ -174,7 +199,8 @@ class AgenticOrchestrator:
             
             logger.info(f"Bounding boxes: {len(all_detections)} detections from {final_results['bounding_boxes']['model_used']}, visual_evidence keys: {list(final_results['visual_evidence'].keys())}")
 
-            return {
+            from utils.json_sanitizer import sanitize_for_json
+            response_dict = {
                 'query_id': query_id,
                 'status': 'success',
                 'explanation': aggregated['summary'],
@@ -196,17 +222,19 @@ class AgenticOrchestrator:
                 },
                 'state': execution_result.get('state', {})
             }
+            return sanitize_for_json(response_dict)
 
         except Exception as e:
             logger.error(f"Error processing query {query_id}: {str(e)}")
-            return {
+            from utils.json_sanitizer import sanitize_for_json
+            return sanitize_for_json({
                 'query_id': query_id,
                 'status': 'error',
                 'error': str(e),
                 'results': {},
                 'confidence': 0.0,
                 'audit_log': {}
-            }
+            })
 
     def get_available_tools(self) -> List[str]:
         """Return list of available tools"""

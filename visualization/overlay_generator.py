@@ -56,6 +56,22 @@ class OverlayGenerator:
             img_bgr = cv2.cvtColor(img_copy, cv2.COLOR_RGB2BGR)
             h, w, _ = img_bgr.shape
 
+            # If image is small (< 500px), upscale to 600x600 for high-resolution visual overlays & HUD
+            if h < 500 or w < 500:
+                scale_x = 600.0 / max(w, 1)
+                scale_y = 600.0 / max(h, 1)
+                img_bgr = cv2.resize(img_bgr, (600, 600), interpolation=cv2.INTER_CUBIC)
+                h, w = 600, 600
+                scaled_dets = []
+                for d in detections:
+                    dc = dict(d)
+                    if 'bbox' in dc:
+                        x1, y1, x2, y2 = dc['bbox']
+                        dc['bbox'] = [x1 * scale_x, y1 * scale_y, x2 * scale_x, y2 * scale_y]
+                    scaled_dets.append(dc)
+                detections = scaled_dets
+                img_copy = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
             # Compute spectral pixel masks on the image array
             r = img_copy[:, :, 0].astype(np.float32)
             g = img_copy[:, :, 1].astype(np.float32)

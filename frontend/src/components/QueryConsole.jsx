@@ -6,7 +6,9 @@ export default function QueryConsole({ query, setQuery, onExecute, loading }) {
     { label: "Count buildings & structures", query: "Count the buildings and structures in this image", task: "vqa" },
     { label: "Locate water body", query: "Locate the water body or river in this imagery", task: "grounding" },
     { label: "Sentinel-1 SAR Radar Analysis", query: "Process Sentinel-1 SAR radar imagery and fuse with optical data", task: "sar" },
-    { label: "Detect urban land change", query: "Detect land surface changes and urban expansion", task: "change" }
+    { label: "Detect urban land change", query: "Detect land surface changes and urban expansion", task: "change" },
+    { label: "🚨 Kerala Flood Assessment", query: "Show flood extent and evacuation plan in Wayanad, Kerala", task: "disaster" },
+    { label: "🌋 Earthquake Damage Audit", query: "Earthquake structural damage assessment in Turkey", task: "disaster" },
   ];
 
   return (

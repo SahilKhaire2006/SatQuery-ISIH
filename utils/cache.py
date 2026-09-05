@@ -75,11 +75,14 @@ class QueryCache:
     def set(self, query: str, image_bytes: bytes, result: Dict[str, Any], ttl_seconds: int = 3600):
         """Store query response in cache"""
         key = self._generate_key(query, image_bytes)
+        from utils.json_sanitizer import sanitize_for_json
+        clean_result = sanitize_for_json(result)
 
         if self.redis_client:
             try:
-                self.redis_client.setex(key, ttl_seconds, json.dumps(result))
+                self.redis_client.setex(key, ttl_seconds, json.dumps(clean_result))
             except Exception as e:
                 logger.warning(f"Redis set error: {e}")
 
-        self._memory_cache[key] = result
+        self._memory_cache[key] = clean_result
+
