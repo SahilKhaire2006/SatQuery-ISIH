@@ -21,6 +21,85 @@ logger = setup_logger(__name__)
 FETCHED_MAPS_DIR = Path("text_guided_grounding/data/fetched_maps")
 
 
+import re
+
+
+def extract_coordinates_from_text(text: str) -> Optional[Tuple[float, float]]:
+    """
+    Extract latitude and longitude floating point numbers from natural language query text.
+    Handles labeled formats (Latitude: 28.1633° N Longitude: 85.3344° E),
+    directional formats (28.1633° N, 85.3344° E), raw numbers (28.1633, 85.3344), etc.
+
+    Returns:
+        Tuple[float, float] of (lat, lon) if found and valid (-90..90, -180..180), else None.
+    """
+    if not text:
+        return None
+
+    # Clean text
+    clean_text = text.strip()
+
+    # Pattern 1: Explicit "Latitude: X ... Longitude: Y" or "Lat: X ... Lon: Y" with optional N/S/E/W
+    lat_label_pattern = r'(?:lat(?:itude)?\s*[:=]?\s*)(-?\d+\.\d+)\s*(?:°?\s*([NSns]))?'
+    lon_label_pattern = r'(?:lon(?:gitude)?\s*[:=]?\s*)(-?\d+\.\d+)\s*(?:°?\s*([EWew]))?'
+
+    lat_match = re.search(lat_label_pattern, clean_text, re.IGNORECASE)
+    lon_match = re.search(lon_label_pattern, clean_text, re.IGNORECASE)
+
+    if lat_match and lon_match:
+        try:
+            lat = float(lat_match.group(1))
+            if lat_match.group(2) and lat_match.group(2).upper() == 'S':
+                lat = -abs(lat)
+
+            lon = float(lon_match.group(1))
+            if lon_match.group(2) and lon_match.group(2).upper() == 'W':
+                lon = -abs(lon)
+
+            if -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0:
+                return lat, lon
+        except ValueError:
+            pass
+
+    # Pattern 2: Pair with hemisphere letters (e.g. "28.1633° N, 85.3344° E" or "28.1633N 85.3344E")
+    dir_pair_pattern = r'(-?\d+\.\d+)\s*°?\s*([NSns])\s*[\s,;:]+\s*(-?\d+\.\d+)\s*°?\s*([EWew])'
+    match = re.search(dir_pair_pattern, clean_text)
+    if match:
+        try:
+            lat = float(match.group(1))
+            if match.group(2).upper() == 'S':
+                lat = -abs(lat)
+
+            lon = float(match.group(3))
+            if match.group(4).upper() == 'W':
+                lon = -abs(lon)
+
+            if -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0:
+                return lat, lon
+        except ValueError:
+            pass
+
+    # Pattern 3: Standard numerical pair separated by comma/space (e.g. "28.1633, 85.3344" or "(28.1633, 85.3344)")
+    raw_pair_pattern = r'(-?\d{1,2}\.\d+)\s*(?:°?\s*([NSns]))?\s*[\s,;:]+\s*(-?\d{1,3}\.\d+)\s*(?:°?\s*([EWew]))?'
+    match = re.search(raw_pair_pattern, clean_text)
+    if match:
+        try:
+            lat = float(match.group(1))
+            if match.group(2) and match.group(2).upper() == 'S':
+                lat = -abs(lat)
+
+            lon = float(match.group(3))
+            if match.group(4) and match.group(4).upper() == 'W':
+                lon = -abs(lon)
+
+            if -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0:
+                return lat, lon
+        except ValueError:
+            pass
+
+    return None
+
+
 def geocode_location(location_query: str) -> Tuple[float, float, str]:
     """
     Geocode an address, place name, or lat/lon coordinate string from query text.
@@ -39,15 +118,12 @@ def geocode_location(location_query: str) -> Tuple[float, float, str]:
         if cleaned_query.lower().startswith(noise_prefix):
             cleaned_query = cleaned_query[len(noise_prefix):].strip()
 
-    # 1. Check if query contains raw numerical coordinates "lat, lon"
-    coords = cleaned_query.replace(";", ",").split(",")
-    if len(coords) == 2:
-        try:
-            lat = float(coords[0].strip())
-            lon = float(coords[1].strip())
-            return lat, lon, f"Coordinates ({lat:.4f}, {lon:.4f})"
-        except ValueError:
-            pass
+    # 1. First, check if query contains embedded coordinates (e.g. "Latitude: 28.1633° N Longitude: 85.3344° E" or "28.16, 85.33")
+    parsed_coords = extract_coordinates_from_text(cleaned_query)
+    if parsed_coords is not None:
+        lat, lon = parsed_coords
+        logger.info(f"Extracted coordinates directly from query text: ({lat:.5f}, {lon:.5f})")
+        return lat, lon, f"Coordinates ({lat:.4f}, {lon:.4f})"
 
     # Build list of query candidates (extracted place candidate first, then full cleaned query)
     candidates = []
@@ -74,11 +150,24 @@ def geocode_location(location_query: str) -> Tuple[float, float, str]:
             extended_candidates.append(f"{parts[0]}, {parts[-1]}")
             extended_candidates.append(parts[-1])
 
+    # Helper function to check if candidate is a valid geographic search string
+    def _is_valid_candidate(c: str) -> bool:
+        c_clean = c.strip().strip(",.").strip()
+        if len(c_clean) < 3:
+            return False
+        # Ignore single direction letters or fragments like "E", "N", "W", "S", "85.3344°, E", "latitude:"
+        if c_clean.upper() in ["E", "N", "W", "S", "LAT", "LON"]:
+            return False
+        # If candidate is purely numbers and symbols/directions (e.g. "85.3344°, E"), skip
+        if re.match(r'^[\d\.\s°°,\-:=+EWNSewns]+$', c_clean) and not any(ch.isalpha() for ch in c_clean if ch.upper() not in "EWNS"):
+            return False
+        return True
+
     # Deduplicate candidates while preserving order
     seen = set()
     final_candidates = []
     for c in extended_candidates:
-        if c.lower() not in seen and len(c) >= 3:
+        if c.lower() not in seen and _is_valid_candidate(c):
             seen.add(c.lower())
             final_candidates.append(c)
 

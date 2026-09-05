@@ -112,14 +112,9 @@ class QueryInterpreter:
 
     def _extract_coordinates(self, query: str) -> Optional[list]:
         """Extract latitude and longitude floating point numbers from query text"""
-        # Match formats like 28.6139 N, 77.2090 E or 28.6139, 77.2090
-        coord_pattern = r'(-?\d+\.\d+)\s*(?:°?\s*[NSns])?\s*,\s*(-?\d+\.\d+)\s*(?:°?\s*[EWew])?'
-        match = re.search(coord_pattern, query)
-        if match:
-            try:
-                lat = float(match.group(1))
-                lon = float(match.group(2))
-                return [lat, lon]
-            except ValueError:
-                pass
+        from geospatial.map_fetcher import extract_coordinates_from_text
+        parsed = extract_coordinates_from_text(query)
+        if parsed is not None:
+            return [parsed[0], parsed[1]]
         return None
+
